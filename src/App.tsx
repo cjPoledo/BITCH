@@ -3,6 +3,7 @@ import { useState } from "react";
 import Resident from "./components/Resident";
 import type { ContributorData, ExpenseData, ResidentData } from "./types/types";
 import Expense from "./components/Expense";
+import Summary from "./components/Summary";
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -23,6 +24,12 @@ function App() {
       <h2 className="text-center text-xl">
         Budgeting Interface for Tracking Charges at Home
       </h2>
+
+      <Summary
+        residentsData={residentsData}
+        expensesData={expensesData}
+        contributorsData={contributorsData}
+      />
 
       <Resident
         supabase={supabase}
