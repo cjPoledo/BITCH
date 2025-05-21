@@ -20,7 +20,7 @@ function App() {
 
   return (
     <div className="p-2">
-      {/* <h1 className="text-center font-bold text-5xl">B.I.T.C.H.</h1> */}
+      <h1 className="text-center font-bold text-5xl">B.I.T.C.H.</h1>
       <h2 className="text-center text-xl">
         Budgeting Interface for Tracking Charges at Home
       </h2>
