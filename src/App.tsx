@@ -1,9 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Resident from "./components/Resident";
 import type { ContributorData, ExpenseData, ResidentData } from "./types/types";
 import Expense from "./components/Expense";
 import Summary from "./components/Summary";
+import Login from "./components/Login";
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -17,6 +18,29 @@ function App() {
   const [contributorsData, setContributorsData] = useState<ContributorData[]>(
     []
   );
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  // listen for auth state changes
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN") {
+        setLoggedIn(true);
+      } else if (event === "SIGNED_OUT") {
+        setLoggedIn(false);
+      }
+    });
+
+    return () => {
+      data.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Logout error:", error.message);
+    }
+  };
 
   return (
     <div className="p-2">
@@ -25,26 +49,39 @@ function App() {
         Budgeting Interface for Tracking Charges at Home
       </h2>
 
-      <Summary
-        residentsData={residentsData}
-        expensesData={expensesData}
-        contributorsData={contributorsData}
-      />
+      {!loggedIn ? (
+        <Login supabase={supabase} />
+      ) : (
+        <>
+          <button
+            onClick={handleLogout}
+            className="m-5 px-1 border-1 hover:bg-gray-200 mx-auto block"
+          >
+            Logout
+          </button>
 
-      <Resident
-        supabase={supabase}
-        residentsData={residentsData}
-        setResidentsData={setResidentsData}
-      />
+          <Summary
+            residentsData={residentsData}
+            expensesData={expensesData}
+            contributorsData={contributorsData}
+          />
 
-      <Expense
-        supabase={supabase}
-        expensesData={expensesData}
-        setExpensesData={setExpensesData}
-        contributorsData={contributorsData}
-        setContributorsData={setContributorsData}
-        residentsData={residentsData}
-      />
+          <Resident
+            supabase={supabase}
+            residentsData={residentsData}
+            setResidentsData={setResidentsData}
+          />
+
+          <Expense
+            supabase={supabase}
+            expensesData={expensesData}
+            setExpensesData={setExpensesData}
+            contributorsData={contributorsData}
+            setContributorsData={setContributorsData}
+            residentsData={residentsData}
+          />
+        </>
+      )}
 
       {/* <section className="p-2">
         <h3 className="text-center font-bold text-xl">Payments</h3>
