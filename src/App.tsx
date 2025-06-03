@@ -22,7 +22,7 @@ function App() {
 
   // listen for auth state changes
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN") {
         setLoggedIn(true);
       } else if (event === "SIGNED_OUT") {
