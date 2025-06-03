@@ -150,6 +150,10 @@ const Expense = ({
 
   // Delete Expense
   const deleteExpense = async (id: number) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this expense? This action cannot be undone."
+    );
+    if (!confirmDelete) return;
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) {
       console.error("Error deleting expense:", error);

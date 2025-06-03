@@ -78,6 +78,10 @@ const Resident = ({
 
   // Delete Resident
   const deleteResident = async (id: number) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this resident? This action cannot be undone."
+    );
+    if (!confirmDelete) return;
     const { error } = await supabase.from("residents").delete().eq("id", id);
     if (error) {
       console.error("Error deleting resident:", error);
