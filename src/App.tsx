@@ -57,6 +57,7 @@ function App() {
       <h2 className="text-center text-xl">
         Budgeting Interface for Tracking Charges at Home
       </h2>
+      <h3 className="text-center italic">The B.I.T.C.H. who keeps receipts.</h3>
 
       {!loggedIn ? (
         <Login supabase={supabase} />
