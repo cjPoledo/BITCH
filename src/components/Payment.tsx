@@ -155,6 +155,66 @@ const Payment = ({
     };
   }, []);
 
+  // Add payment entry
+  const addPayment = async () => {
+    if (
+      newPaymentAmount <= 0 ||
+      newPaymentForRef.current?.getValue().length === 0 ||
+      newPaymentPaidByRef.current?.getValue().length === 0 ||
+      newPaymentReceivedByRef.current?.getValue().length === 0
+    )
+      return;
+
+    const newPayment = {
+      paid_by: newPaymentPaidByRef.current?.getValue()[0].id,
+      received_by: newPaymentReceivedByRef.current?.getValue()[0].id,
+      amount: newPaymentAmount,
+      notes: newPaymentNotes,
+    };
+
+    const { data, error } = await supabase
+      .from("payments")
+      .insert([newPayment])
+      .select();
+    const paymentInsertError = error;
+    const paymentInsertData = data;
+    if (paymentInsertError) {
+      console.error("Error adding payment:", paymentInsertError);
+    } else {
+      newPaymentForRef.current?.getValue().forEach(async (expense) => {
+        const { error } = await supabase
+          .from("payment_for")
+          .insert([
+            {
+              payment_id: paymentInsertData![0].id,
+              expense_id: expense.id,
+            },
+          ])
+          .select();
+        if (error) {
+          console.error("Error adding payment for:", error);
+        }
+      });
+      newPaymentPaidByRef.current?.clearValue();
+      newPaymentReceivedByRef.current?.clearValue();
+      setNewPaymentAmount(0);
+      newPaymentForRef.current?.clearValue();
+      setNewPaymentNotes("");
+    }
+  };
+
+  // Delete payment entry
+  const deletePayment = async (id: number) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this payment? This action cannot be undone."
+    );
+    if (!confirmDelete) return;
+    const { error } = await supabase.from("payments").delete().eq("id", id);
+    if (error) {
+      console.error("Error deleting payment:", error);
+    }
+  };
+
   return (
     <section className="p-2" id="payment">
       <h3 className="text-center font-bold text-xl">Payments</h3>
@@ -254,6 +314,7 @@ const Payment = ({
               <button
                 type="button"
                 className="m-1 px-1 border-1 hover:bg-gray-200"
+                onClick={addPayment}
               >
                 Add
               </button>
@@ -293,6 +354,7 @@ const Payment = ({
                 <button
                   type="button"
                   className="m-1 px-1 border-1 hover:bg-gray-200"
+                  onClick={() => deletePayment(payment.id)}
                 >
                   Delete
                 </button>
