@@ -73,6 +73,7 @@ function App() {
             residentsData={residentsData}
             expensesData={expensesData}
             contributorsData={contributorsData}
+            paymentsData={paymentsData}
           />
 
           <Resident
