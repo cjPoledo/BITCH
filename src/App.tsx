@@ -102,7 +102,7 @@ function App() {
             contributorsData={contributorsData}
           />
 
-          <nav className="sticky bottom-0 bg-white p-2 border-b flex justify-center">
+          <nav className="sticky bottom-0 bg-white p-2 border-t flex justify-center">
             <a href="#summary" className="m-2 px-1 border-1 hover:bg-gray-200">
               Summary
             </a>
