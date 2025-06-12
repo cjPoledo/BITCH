@@ -66,6 +66,7 @@ const Summary = ({
             {Object.entries(oweTable).length > 0 &&
               Object.entries(oweTable[resident.id]).map(
                 ([otherResidentId, amount]) => {
+                  if (amount === 0) return null; // Skip if no amount owed
                   const otherResident = residentsData.find(
                     (r) => r.id === Number(otherResidentId)
                   );
