@@ -225,6 +225,7 @@ const Payment = ({
                 }}
                 onChange={() => {
                   newPaymentForRef.current?.clearValue();
+                  newPaymentReceivedByRef.current?.clearValue();
                 }}
               />
             </td>
@@ -237,6 +238,12 @@ const Payment = ({
                 }}
                 getOptionValue={(resident) => {
                   return resident.id.toString();
+                }}
+                filterOption={(option) => {
+                  return (
+                    option.data.id !==
+                    newPaymentPaidByRef.current?.getValue()[0]?.id
+                  );
                 }}
               />
             </td>
