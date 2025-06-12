@@ -227,11 +227,15 @@ const Payment = ({
                   return expense.id.toString();
                 }}
                 filterOption={(option) => {
-                  return contributorsData.some(
-                    (contributor) =>
-                      contributor.expense_id === option.data.id &&
-                      contributor.resident_id ===
-                        newPaymentPaidByRef.current?.getValue()[0]?.id
+                  return (
+                    contributorsData.some(
+                      (contributor) =>
+                        contributor.expense_id === option.data.id &&
+                        contributor.resident_id ===
+                          newPaymentPaidByRef.current?.getValue()[0]?.id
+                    ) &&
+                    option.data.care_of ===
+                      newPaymentReceivedByRef.current?.getValue()[0]?.id
                   );
                 }}
                 isMulti
