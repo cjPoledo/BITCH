@@ -227,7 +227,7 @@ const Expense = ({
         </thead>
         <tbody>
           {expensesData.map((expense) => (
-            <tr key={expense.id}>
+            <tr key={expense.id} id={`expense-${expense.id}`}>
               <td className="p-1">
                 {new Date(expense.created_at).toLocaleString()}
               </td>
