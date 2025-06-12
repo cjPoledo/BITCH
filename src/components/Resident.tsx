@@ -19,7 +19,7 @@ const Resident = ({
       const { data, error } = await supabase
         .from("residents")
         .select("*")
-        .order("id", { ascending: true });
+        .order("nickname", { ascending: true });
       if (error) {
         console.error("Error fetching residents:", error);
       } else {
@@ -103,7 +103,7 @@ const Resident = ({
   };
 
   return (
-    <section className="p-2">
+    <section className="p-2" id="resident">
       {/* Residents Section */}
       <h3 className="text-center font-bold text-xl">Residents</h3>
       <table className="mx-auto my-2 text-center">

@@ -101,6 +101,21 @@ function App() {
             expensesData={expensesData}
             contributorsData={contributorsData}
           />
+
+          <nav className="sticky bottom-0 bg-white p-2 border-b flex justify-center">
+            <a href="#summary" className="m-2 px-1 border-1 hover:bg-gray-200">
+              Summary
+            </a>
+            <a href="#resident" className="m-2 px-1 border-1 hover:bg-gray-200">
+              Residents
+            </a>
+            <a href="#expense" className="m-2 px-1 border-1 hover:bg-gray-200">
+              Expenses
+            </a>
+            <a href="#payment" className="m-2 px-1 border-1 hover:bg-gray-200">
+              Payments
+            </a>
+          </nav>
         </>
       )}
     </div>

@@ -37,7 +37,7 @@ const Expense = ({
       const { data, error } = await supabase
         .from("expenses")
         .select("*")
-        .order("id", { ascending: true });
+        .order("id", { ascending: false });
       if (error) {
         console.error("Error fetching expenses:", error);
       } else {
@@ -69,7 +69,7 @@ const Expense = ({
         (payload) => {
           switch (payload.eventType) {
             case "INSERT":
-              setExpensesData((prev) => [...prev, payload.new as ExpenseData]);
+              setExpensesData((prev) => [payload.new as ExpenseData, ...prev]);
               break;
 
             case "DELETE":
@@ -211,7 +211,7 @@ const Expense = ({
   };
 
   return (
-    <section className="p-2">
+    <section className="p-2" id="expense">
       <h3 className="text-center font-bold text-xl">Expenses</h3>
       <table className="mx-auto my-2 text-center">
         <thead>
@@ -226,48 +226,6 @@ const Expense = ({
           </tr>
         </thead>
         <tbody>
-          {expensesData.map((expense) => (
-            <tr key={expense.id} id={`expense-${expense.id}`}>
-              <td className="p-1">
-                {new Date(expense.created_at).toLocaleString()}
-              </td>
-              <td className="p-1">{expense.item}</td>
-              <td className="p-1">₱{expense.price}</td>
-              <td className="p-1">
-                {
-                  residentsData.find(
-                    (resident) => resident.id === expense.care_of
-                  )?.nickname
-                }
-              </td>
-              <td className="p-1">
-                {contributorsData
-                  .filter(
-                    (contributor) => contributor.expense_id === expense.id
-                  )
-                  .map((contributor, index, array) => (
-                    <span key={contributor.resident_id}>
-                      {
-                        residentsData.find(
-                          (resident) => resident.id === contributor.resident_id
-                        )?.nickname
-                      }
-                      {index < array.length - 1 && ", "}
-                    </span>
-                  ))}
-              </td>
-              <td className="p-1">{expense.notes}</td>
-              <td className="p-1">
-                <button
-                  type="button"
-                  className="m-1 px-1 border-1 hover:bg-gray-200"
-                  onClick={() => deleteExpense(expense.id)}
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
           <tr>
             <td className="p-1">-</td>
             <td className="p-1">
@@ -332,6 +290,48 @@ const Expense = ({
               </button>
             </td>
           </tr>
+          {expensesData.map((expense) => (
+            <tr key={expense.id} id={`expense-${expense.id}`}>
+              <td className="p-1">
+                {new Date(expense.created_at).toLocaleString()}
+              </td>
+              <td className="p-1">{expense.item}</td>
+              <td className="p-1">₱{expense.price}</td>
+              <td className="p-1">
+                {
+                  residentsData.find(
+                    (resident) => resident.id === expense.care_of
+                  )?.nickname
+                }
+              </td>
+              <td className="p-1">
+                {contributorsData
+                  .filter(
+                    (contributor) => contributor.expense_id === expense.id
+                  )
+                  .map((contributor, index, array) => (
+                    <span key={contributor.resident_id}>
+                      {
+                        residentsData.find(
+                          (resident) => resident.id === contributor.resident_id
+                        )?.nickname
+                      }
+                      {index < array.length - 1 && ", "}
+                    </span>
+                  ))}
+              </td>
+              <td className="p-1">{expense.notes}</td>
+              <td className="p-1">
+                <button
+                  type="button"
+                  className="m-1 px-1 border-1 hover:bg-gray-200"
+                  onClick={() => deleteExpense(expense.id)}
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </section>

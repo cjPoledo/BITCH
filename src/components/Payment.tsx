@@ -44,7 +44,7 @@ const Payment = ({
       const { data, error } = await supabase
         .from("payments")
         .select("*")
-        .order("id", { ascending: true });
+        .order("id", { ascending: false });
       if (error) {
         console.error("Error fetching payments:", error);
       } else {
@@ -76,7 +76,7 @@ const Payment = ({
         (payload) => {
           switch (payload.eventType) {
             case "INSERT":
-              setPaymentsData((prev) => [...prev, payload.new as PaymentData]);
+              setPaymentsData((prev) => [payload.new as PaymentData, ...prev]);
               break;
 
             case "DELETE":
@@ -156,7 +156,7 @@ const Payment = ({
   }, []);
 
   return (
-    <section className="p-2">
+    <section className="p-2" id="payment">
       <h3 className="text-center font-bold text-xl">Payments</h3>
       <table className="mx-auto my-2 text-center">
         <thead>
@@ -171,46 +171,6 @@ const Payment = ({
           </tr>
         </thead>
         <tbody>
-          {paymentsData.map((payment) => (
-            <tr key={payment.id}>
-              <td className="p-1">
-                {new Date(payment.created_at).toLocaleString()}
-              </td>
-              <td className="p-1">
-                {residentsData.find((r) => r.id === payment.paid_by)?.nickname}
-              </td>
-              <td className="p-1">
-                {
-                  residentsData.find((r) => r.id === payment.received_by)
-                    ?.nickname
-                }
-              </td>
-              <td className="p-1">₱{payment.amount}</td>
-              <td className="p-1">
-                {paymentForData
-                  .filter((pf) => pf.payment_id === payment.id)
-                  .map((pf, index, array) => (
-                    <a
-                      key={pf.expense_id}
-                      href={`#expense-${pf.expense_id}`}
-                      className="underline hover:no-underline"
-                    >
-                      {expensesData.find((e) => e.id === pf.expense_id)?.item}
-                      {index < array.length - 1 && ", "}
-                    </a>
-                  ))}
-              </td>
-              <td className="p-1">{payment.notes}</td>
-              <td className="p-1">
-                <button
-                  type="button"
-                  className="m-1 px-1 border-1 hover:bg-gray-200"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
           <tr>
             <td className="p-1">-</td>
             <td className="p-1">
@@ -295,6 +255,46 @@ const Payment = ({
               </button>
             </td>
           </tr>
+          {paymentsData.map((payment) => (
+            <tr key={payment.id}>
+              <td className="p-1">
+                {new Date(payment.created_at).toLocaleString()}
+              </td>
+              <td className="p-1">
+                {residentsData.find((r) => r.id === payment.paid_by)?.nickname}
+              </td>
+              <td className="p-1">
+                {
+                  residentsData.find((r) => r.id === payment.received_by)
+                    ?.nickname
+                }
+              </td>
+              <td className="p-1">₱{payment.amount}</td>
+              <td className="p-1">
+                {paymentForData
+                  .filter((pf) => pf.payment_id === payment.id)
+                  .map((pf, index, array) => (
+                    <a
+                      key={pf.expense_id}
+                      href={`#expense-${pf.expense_id}`}
+                      className="underline hover:no-underline"
+                    >
+                      {expensesData.find((e) => e.id === pf.expense_id)?.item}
+                      {index < array.length - 1 && ", "}
+                    </a>
+                  ))}
+              </td>
+              <td className="p-1">{payment.notes}</td>
+              <td className="p-1">
+                <button
+                  type="button"
+                  className="m-1 px-1 border-1 hover:bg-gray-200"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </section>

@@ -87,7 +87,7 @@ const Summary = ({
   }, [expensesData, contributorsData, residentsData, paymentsData]);
 
   return (
-    <section className="p-2 border rounded-2xl w-fit mx-auto">
+    <section className="p-2 border rounded-2xl w-fit mx-auto" id="summary">
       <h3 className="text-center font-bold text-xl">Summary</h3>
       {residentsData.map(
         (resident) =>
