@@ -71,7 +71,9 @@ const Summary = ({
     Object.keys(tally).forEach((residentId) => {
       Object.keys(tally[Number(residentId)]).forEach((otherResidentId) => {
         if (
-          Math.round(tally[Number(residentId)][Number(otherResidentId)]) === 0
+          Number(
+            tally[Number(residentId)][Number(otherResidentId)].toFixed(2)
+          ) === 0
         ) {
           delete tally[Number(residentId)][Number(otherResidentId)];
         }
