@@ -1,1 +1,25 @@
 @import "tailwindcss";
+
+/* Brand-consistent, readable page background */
+.bg-app-gradient {
+  background-image: linear-gradient(to bottom right, #f0fdfa, #ffffff 35%, #eef2ff);
+}
+
+@media (prefers-color-scheme: dark) {
+  .bg-app-gradient-dark {
+    background-image: linear-gradient(to bottom right, #0b1320, #0a0f1a 40%, #0f172a);
+  }
+}
+
+/* Semi-glass navbar backdrop that blends with the gradient */
+.bg-nav-glass {
+  background: linear-gradient(
+    to right,
+    rgba(240, 253, 250, 0.85),
+    rgba(238, 242, 255, 0.85)
+  );
+}
+
+/* Offset anchors so sticky nav never hides section headers */
+:root { --nav-h: 80px; }
+.anchor-section { scroll-margin-top: calc(var(--nav-h) + 12px); }

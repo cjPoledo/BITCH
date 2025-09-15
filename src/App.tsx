@@ -1,6 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Resident from "./components/Resident";
+import Expense from "./components/Expense";
+import Summary from "./components/Summary";
+import Payment from "./components/Payment";
+import Login from "./components/Login";
 import {
   type PaymentForData,
   type ContributorData,
@@ -8,10 +12,6 @@ import {
   type PaymentData,
   type ResidentData,
 } from "./types/types";
-import Expense from "./components/Expense";
-import Summary from "./components/Summary";
-import Login from "./components/Login";
-import Payment from "./components/Payment";
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -22,23 +22,38 @@ const supabase = createClient(
 function App() {
   const [residentsData, setResidentsData] = useState<ResidentData[]>([]);
   const [expensesData, setExpensesData] = useState<ExpenseData[]>([]);
-  const [contributorsData, setContributorsData] = useState<ContributorData[]>(
-    []
-  );
+  const [contributorsData, setContributorsData] = useState<ContributorData[]>([]);
   const [paymentsData, setPaymentsData] = useState<PaymentData[]>([]);
   const [paymentForData, setPaymentForData] = useState<PaymentForData[]>([]);
   const [loggedIn, setLoggedIn] = useState(false);
 
-  // listen for auth state changes
+  const navRef = useRef<HTMLDivElement | null>(null);
+
+  // Smooth scroll that respects sticky navbar height
+  const scrollToId = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const navH = navRef.current?.offsetHeight ?? 80;
+    const top = el.getBoundingClientRect().top + window.scrollY - (navH + 12);
+    window.scrollTo({ top, behavior: "smooth" });
+  };
+
+  // Keep a CSS var --nav-h updated (used by .anchor-section)
+  useEffect(() => {
+    const setVar = () => {
+      const h = navRef.current?.offsetHeight ?? 80;
+      document.documentElement.style.setProperty("--nav-h", `${h}px`);
+    };
+    setVar();
+    window.addEventListener("resize", setVar);
+    return () => window.removeEventListener("resize", setVar);
+  }, []);
+
+  // Auth state
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
-        setLoggedIn(true);
-      } else if (event === "SIGNED_OUT") {
-        setLoggedIn(false);
-      }
+      setLoggedIn(event === "SIGNED_IN");
     });
-
     return () => {
       data.subscription.unsubscribe();
     };
@@ -46,77 +61,127 @@ function App() {
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error("Logout error:", error.message);
-    }
+    if (error) console.error("Logout error:", error.message);
   };
 
-  return (
-    <div className="p-2">
-      <h1 className="text-center font-bold text-5xl">B.I.T.C.H.</h1>
-      <h2 className="text-center text-xl">
-        Budgeting Interface for Tracking Charges at Home
-      </h2>
-      <h3 className="text-center italic">The B.I.T.C.H. who keeps receipts.</h3>
+  // Make #hash links also use our offset scrolling
+  useEffect(() => {
+    const onHash = () => {
+      const id = window.location.hash.replace("#", "");
+      if (id) requestAnimationFrame(() => scrollToId(id));
+    };
+    onHash();
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-teal-500/15 via-indigo-500/15 to-slate-500/15 dark:from-slate-900 dark:via-slate-950 dark:to-black">
       {!loggedIn ? (
         <Login supabase={supabase} />
       ) : (
         <>
-          <button
-            onClick={handleLogout}
-            className="m-5 px-1 border-1 hover:bg-gray-200 mx-auto block"
+          {/* Sticky branded navbar */}
+          <div
+            ref={navRef}
+            className="sticky top-0 z-40 border-b border-slate-200/70 bg-nav-glass dark:border-slate-800/60 backdrop-blur"
           >
-            Logout
-          </button>
+            <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5">
+              {/* Left: Logo + brand */}
+              <a
+                href="#summary"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToId("summary");
+                }}
+                className="group flex items-center gap-2 text-slate-800 dark:text-slate-100"
+              >
+                {/* Brand mark */}
+                <svg
+                  viewBox="0 0 64 64"
+                  role="img"
+                  aria-label="App logo"
+                  className="h-9 w-9 drop-shadow-sm"
+                >
+                  <defs>
+                    <linearGradient id="navLogoGradient" x1="0" x2="1" y1="0" y2="1">
+                      <stop offset="0%" stopColor="#14b8a6" />
+                      <stop offset="100%" stopColor="#6366f1" />
+                    </linearGradient>
+                  </defs>
+                  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#navLogoGradient)" />
+                  <path
+                    d="M24 22h12.5c4.5 0 7.5 2.7 7.5 6.6c0 3.2-1.9 5.6-4.9 6.5v.1c2.7.7 4.4 2.8 4.4 5.7c0 4.3-3.3 7.1-8.7 7.1H24V22zm7.8 10.8c2.6 0 4.2-1.2 4.2-3.3s-1.6-3.2-4.2-3.2H29v6.5h2.8zm.9 12.2c3 0 4.9-1.4 4.9-3.8c0-2.3-1.9-3.6-4.9-3.6H29v7.4h3.7z"
+                    fill="#fff"
+                    fillOpacity="0.95"
+                  />
+                </svg>
+                <span className="text-lg font-semibold tracking-wide">B.I.T.C.H</span>
+              </a>
 
-          <Summary
-            residentsData={residentsData}
-            expensesData={expensesData}
-            contributorsData={contributorsData}
-            paymentsData={paymentsData}
-          />
+              {/* Center: Nav pills */}
+              <nav className="flex items-center gap-3">
+                {[
+                  ["summary", "Summary"],
+                  ["resident", "Residents"],
+                  ["expense", "Expenses"],
+                  ["payment", "Payments"],
+                ].map(([id, label]) => (
+                  <button
+                    key={id}
+                    onClick={() => scrollToId(id)}
+                    className="rounded-lg border border-white/60 bg-white/70 px-4 py-2.5 text-base font-medium text-slate-700/90 shadow-sm transition hover:bg-white/90 hover:text-slate-900 dark:border-white/10 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </nav>
 
-          <Resident
-            supabase={supabase}
-            residentsData={residentsData}
-            setResidentsData={setResidentsData}
-          />
+              {/* Right: Logout */}
+              <button
+                onClick={handleLogout}
+                className="rounded-full bg-rose-500 px-4 py-2 text-base font-semibold text-white shadow-sm ring-1 ring-white/30 transition hover:bg-rose-600"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
 
-          <Expense
-            supabase={supabase}
-            expensesData={expensesData}
-            setExpensesData={setExpensesData}
-            contributorsData={contributorsData}
-            setContributorsData={setContributorsData}
-            residentsData={residentsData}
-          />
+          {/* Main content surface */}
+          <main className="mx-auto max-w-6xl px-4 py-8 space-y-8">
+            <Summary
+              residentsData={residentsData}
+              expensesData={expensesData}
+              contributorsData={contributorsData}
+              paymentsData={paymentsData}
+            />
 
-          <Payment
-            supabase={supabase}
-            paymentsData={paymentsData}
-            setPaymentsData={setPaymentsData}
-            paymentForData={paymentForData}
-            setPaymentForData={setPaymentForData}
-            residentsData={residentsData}
-            expensesData={expensesData}
-            contributorsData={contributorsData}
-          />
+            <Resident
+              supabase={supabase}
+              residentsData={residentsData}
+              setResidentsData={setResidentsData}
+            />
 
-          <nav className="sticky bottom-0 bg-white p-2 border-t flex justify-center">
-            <a href="#summary" className="m-2 px-1 border-1 hover:bg-gray-200">
-              Summary
-            </a>
-            <a href="#resident" className="m-2 px-1 border-1 hover:bg-gray-200">
-              Residents
-            </a>
-            <a href="#expense" className="m-2 px-1 border-1 hover:bg-gray-200">
-              Expenses
-            </a>
-            <a href="#payment" className="m-2 px-1 border-1 hover:bg-gray-200">
-              Payments
-            </a>
-          </nav>
+            <Expense
+              supabase={supabase}
+              expensesData={expensesData}
+              setExpensesData={setExpensesData}
+              contributorsData={contributorsData}
+              setContributorsData={setContributorsData}
+              residentsData={residentsData}
+            />
+
+            <Payment
+              supabase={supabase}
+              paymentsData={paymentsData}
+              setPaymentsData={setPaymentsData}
+              paymentForData={paymentForData}
+              setPaymentForData={setPaymentForData}
+              residentsData={residentsData}
+              expensesData={expensesData}
+              contributorsData={contributorsData}
+            />
+          </main>
         </>
       )}
     </div>
