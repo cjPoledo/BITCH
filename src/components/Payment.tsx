@@ -45,6 +45,10 @@ const Payment = ({
   const [newPaymentAmount, setNewPaymentAmount] = useState(0);
   const [newPaymentNotes, setNewPaymentNotes] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showAddSuccess, setShowAddSuccess] = useState(false);
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
 
   const newPaymentPaidByRef = useRef<SelectInstance<ResidentData> | null>(null);
   const newPaymentReceivedByRef = useRef<SelectInstance<ResidentData> | null>(
@@ -173,6 +177,11 @@ const Payment = ({
     setNewPaymentNotes("");
   };
 
+  const confirmDeletePayment = (id: number) => {
+    setDeleteId(id);
+    setShowConfirm(true);
+  };
+
   // Add payment entry
   const addPayment = async () => {
     const paidBy = newPaymentPaidByRef.current?.getValue()[0]?.id;
@@ -218,18 +227,19 @@ const Payment = ({
 
     clearNewPaymentForm();
     setIsAdding(false);
+    setShowAddSuccess(true);
   };
 
-  // Delete payment entry
-  const deletePayment = async (id: number) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this payment? This action cannot be undone."
-    );
-    if (!confirmDelete) return;
-    const { error } = await supabase.from("payments").delete().eq("id", id);
+  // Delete payment entry handled via modal
+  const handleDeletePayment = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase.from("payments").delete().eq("id", deleteId);
     if (error) {
       console.error("Error deleting payment:", error);
+      return;
     }
+    setShowConfirm(false);
+    setShowDeleteSuccess(true);
   };
 
   const handleAmountKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
@@ -489,7 +499,7 @@ const Payment = ({
                   <button
                     type="button"
                     className="inline-flex items-center gap-1 rounded-lg border border-rose-200/60 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 shadow-sm transition hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-400/30 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200"
-                    onClick={() => deletePayment(payment.id)}
+                    onClick={() => confirmDeletePayment(payment.id)}
                   >
                     Delete
                   </button>
@@ -509,6 +519,58 @@ const Payment = ({
           </tbody>
         </table>
       </div>
+      {/* Confirm Delete Modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="rounded-xl bg-white p-6 shadow-lg">
+            <p className="mb-4 text-slate-700">Are you sure you want to delete this payment?</p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="rounded-lg bg-gray-200 px-3 py-1.5 text-sm"
+                onClick={() => setShowConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="rounded-lg bg-rose-500 px-3 py-1.5 text-sm text-white"
+                onClick={handleDeletePayment}
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal (Add) */}
+      {showAddSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="rounded-xl bg-white p-6 shadow-lg text-center">
+            <p className="mb-4 text-emerald-600">Payment added successfully!</p>
+            <button
+              className="rounded-lg bg-teal-500 px-4 py-2 text-sm text-white"
+              onClick={() => setShowAddSuccess(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal (Delete) */}
+      {showDeleteSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="rounded-xl bg-white p-6 shadow-lg text-center">
+            <p className="mb-4 text-emerald-600">Payment deleted successfully!</p>
+            <button
+              className="rounded-lg bg-teal-500 px-4 py-2 text-sm text-white"
+              onClick={() => setShowDeleteSuccess(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

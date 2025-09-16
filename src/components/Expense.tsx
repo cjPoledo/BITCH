@@ -13,33 +13,40 @@ const selectStyles = {
   control: (base: any, state: any) => ({
     ...base,
     borderRadius: 12,
-    borderColor: state.isFocused ? '#14b8a6' : '#e5e7eb',
-    boxShadow: state.isFocused ? '0 0 0 4px rgba(20,184,166,0.15)' : 'none',
-    ':hover': { borderColor: state.isFocused ? '#14b8a6' : '#cbd5e1' },
-    backgroundColor: 'white',
+    borderColor: state.isFocused ? "#14b8a6" : "#e5e7eb",
+    boxShadow: state.isFocused ? "0 0 0 4px rgba(20,184,166,0.15)" : "none",
+    ":hover": { borderColor: state.isFocused ? "#14b8a6" : "#cbd5e1" },
+    backgroundColor: "white",
     minHeight: 42,
   }),
-  menu: (base: any) => ({ ...base, borderRadius: 12, overflow: 'hidden' }),
+  menu: (base: any) => ({ ...base, borderRadius: 12, overflow: "hidden" }),
   menuPortal: (base: any) => ({ ...base, zIndex: 9999 }),
   option: (base: any, state: any) => ({
     ...base,
-    backgroundColor: state.isFocused ? 'rgba(99,102,241,0.08)' : 'white',
-    color: '#0f172a',
+    backgroundColor: state.isFocused ? "rgba(99,102,241,0.08)" : "white",
+    color: "#0f172a",
   }),
   multiValue: (base: any) => ({
     ...base,
-    backgroundColor: 'rgba(20,184,166,0.10)',
+    backgroundColor: "rgba(20,184,166,0.10)",
     borderRadius: 9999,
   }),
-  multiValueLabel: (base: any) => ({ ...base, color: '#0f766e' }),
-  multiValueRemove: (base: any) => ({ ...base, ':hover': { backgroundColor: 'rgba(20,184,166,0.2)', color: '#0f172a' } }),
+  multiValueLabel: (base: any) => ({ ...base, color: "#0f766e" }),
+  multiValueRemove: (base: any) => ({
+    ...base,
+    ":hover": { backgroundColor: "rgba(20,184,166,0.2)", color: "#0f172a" },
+  }),
 } as const;
 
 const formatPHP = (n: number | string) => {
-  const v = typeof n === 'string' ? Number(n) : n;
-  if (!Number.isFinite(v as number)) return '₱0';
+  const v = typeof n === "string" ? Number(n) : n;
+  if (!Number.isFinite(v as number)) return "₱0";
   try {
-    return (v as number).toLocaleString('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 2 });
+    return (v as number).toLocaleString("en-PH", {
+      style: "currency",
+      currency: "PHP",
+      maximumFractionDigits: 2,
+    });
   } catch {
     return `₱${v}`;
   }
@@ -63,6 +70,12 @@ const Expense = ({
   const [newExpenseItem, setNewExpenseItem] = useState("");
   const [newExpensePrice, setNewExpensePrice] = useState(0);
   const [newExpenseNotes, setNewExpenseNotes] = useState("");
+
+  // NEW (modals like Residents)
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showAddSuccess, setShowAddSuccess] = useState(false);
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
 
   const newExpenseCareOfRef = useRef<SelectInstance<ResidentData> | null>(null);
   const newExpenseContributorsRef = useRef<SelectInstance<ResidentData> | null>(
@@ -134,6 +147,7 @@ const Expense = ({
         }
       )
       .subscribe();
+
     const contributorChannel = supabase.channel("contributor-channel");
     contributorChannel
       .on(
@@ -186,19 +200,27 @@ const Expense = ({
     };
   }, []);
 
-  // Delete Expense
-  const deleteExpense = async (id: number) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this expense? This action cannot be undone."
-    );
-    if (!confirmDelete) return;
-    const { error } = await supabase.from("expenses").delete().eq("id", id);
-    if (error) {
-      console.error("Error deleting expense:", error);
-    }
+  // ---- DELETE expense (Modal flow) ----
+  const confirmDeleteExpense = (id: number) => {
+    setDeleteId(id);
+    setShowConfirm(true);
   };
 
-  // Add Expense
+  const handleDeleteExpense = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase
+      .from("expenses")
+      .delete()
+      .eq("id", deleteId);
+    if (error) {
+      console.error("Error deleting expense:", error);
+      return;
+    }
+    setShowConfirm(false);
+    setShowDeleteSuccess(true);
+  };
+
+  // ---- ADD expense (shows success modal on insert) ----
   const addExpense = async () => {
     if (
       newExpenseItem.trim() === "" ||
@@ -219,33 +241,38 @@ const Expense = ({
       .from("expenses")
       .insert([newExpense])
       .select();
-    const expenseInsertData = data;
-    const expenseInsertError = error;
-    if (expenseInsertError) {
-      console.error("Error adding expense:", expenseInsertError);
-    } else {
-      newExpenseContributorsRef.current
-        ?.getValue()
-        .forEach(async (contributor) => {
-          const { error } = await supabase
-            .from("contributors")
-            .insert([
-              {
-                expense_id: expenseInsertData![0].id,
-                resident_id: contributor.id,
-              },
-            ])
-            .select();
-          if (error) {
-            console.error("Error adding contributor:", error);
-          }
-        });
-      setNewExpenseItem("");
-      setNewExpensePrice(0);
-      newExpenseCareOfRef.current?.clearValue();
-      newExpenseContributorsRef.current?.clearValue();
-      setNewExpenseNotes("");
+
+    if (error) {
+      console.error("Error adding expense:", error);
+      return;
     }
+
+    const expenseInsertData = data!;
+    // Insert contributors (fire-and-forget; UI will receive via realtime)
+    newExpenseContributorsRef.current?.getValue().forEach(async (contributor) => {
+      const { error } = await supabase
+        .from("contributors")
+        .insert([
+          {
+            expense_id: expenseInsertData[0].id,
+            resident_id: contributor.id,
+          },
+        ])
+        .select();
+      if (error) {
+        console.error("Error adding contributor:", error);
+      }
+    });
+
+    // Clear inputs
+    setNewExpenseItem("");
+    setNewExpensePrice(0);
+    newExpenseCareOfRef.current?.clearValue();
+    newExpenseContributorsRef.current?.clearValue();
+    setNewExpenseNotes("");
+
+    // Show success modal (match Residents behavior)
+    setShowAddSuccess(true);
   };
 
   return (
@@ -254,20 +281,41 @@ const Expense = ({
       <div className="mx-auto mb-4 flex max-w-5xl items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9">
-            <svg viewBox="0 0 64 64" role="img" aria-label="Expenses" className="h-9 w-9">
+            <svg
+              viewBox="0 0 64 64"
+              role="img"
+              aria-label="Expenses"
+              className="h-9 w-9"
+            >
               <defs>
                 <linearGradient id="expGrad" x1="0" x2="1" y1="0" y2="1">
                   <stop offset="0%" stopColor="#14b8a6" />
                   <stop offset="100%" stopColor="#6366f1" />
                 </linearGradient>
               </defs>
-              <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#expGrad)" />
-              <path d="M20 40h24M20 32h24M20 24h24" stroke="#fff" strokeWidth="4" strokeLinecap="round" />
+              <rect
+                x="4"
+                y="4"
+                width="56"
+                height="56"
+                rx="14"
+                fill="url(#expGrad)"
+              />
+              <path
+                d="M20 40h24M20 32h24M20 24h24"
+                stroke="#fff"
+                strokeWidth="4"
+                strokeLinecap="round"
+              />
             </svg>
           </div>
           <div>
-            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Expenses</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Track items, contributors, and notes at a glance</p>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+              Expenses
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Track items, contributors, and notes at a glance
+            </p>
           </div>
         </div>
       </div>
@@ -275,11 +323,15 @@ const Expense = ({
       {/* Add Expense Row (Card) */}
       <div className="relative z-10 mx-auto mb-5 max-w-5xl rounded-2xl border border-slate-200/70 bg-white/80 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
         <div className="border-b border-slate-200/60 px-4 py-3 dark:border-slate-800">
-          <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Add a new expense</h4>
+          <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Add a new expense
+          </h4>
         </div>
         <div className="grid gap-3 px-4 py-4 md:grid-cols-12">
           <div className="md:col-span-4">
-            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Item</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
+              Item
+            </label>
             <input
               type="text"
               className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
@@ -289,7 +341,9 @@ const Expense = ({
             />
           </div>
           <div className="md:col-span-2">
-            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Price</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
+              Price
+            </label>
             <input
               type="number"
               className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
@@ -301,7 +355,9 @@ const Expense = ({
             />
           </div>
           <div className="md:col-span-3">
-            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Care of</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
+              Care of
+            </label>
             <div className="relative z-50">
               <Select
                 ref={newExpenseCareOfRef}
@@ -316,7 +372,9 @@ const Expense = ({
             </div>
           </div>
           <div className="md:col-span-3">
-            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Contributors</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
+              Contributors
+            </label>
             <div className="relative z-50">
               <Select
                 ref={newExpenseContributorsRef}
@@ -332,7 +390,9 @@ const Expense = ({
             </div>
           </div>
           <div className="md:col-span-9">
-            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Notes</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
+              Notes
+            </label>
             <input
               type="text"
               className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-300/40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
@@ -359,48 +419,86 @@ const Expense = ({
           <table className="min-w-full text-left">
             <thead>
               <tr className="bg-slate-50 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Date Added</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Item</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Price</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Care Of</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Contributors</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Notes</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Action</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
+                  Date Added
+                </th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
+                  Item
+                </th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
+                  Price
+                </th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
+                  Care Of
+                </th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
+                  Contributors
+                </th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
+                  Notes
+                </th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
+                  Action
+                </th>
               </tr>
             </thead>
             <tbody>
               {expensesData.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                  <td
+                    colSpan={7}
+                    className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400"
+                  >
                     No expenses yet. Add your first one above.
                   </td>
                 </tr>
               )}
               {expensesData.map((expense) => (
-                <tr key={expense.id} id={`expense-${expense.id}`} className="border-t border-slate-100/80 odd:bg-white even:bg-slate-50/60 hover:bg-teal-50/40 dark:border-slate-800 dark:odd:bg-slate-900/70 dark:even:bg-slate-900/40 dark:hover:bg-slate-800/60">
+                <tr
+                  key={expense.id}
+                  id={`expense-${expense.id}`}
+                  className="border-t border-slate-100/80 odd:bg-white even:bg-slate-50/60 hover:bg-teal-50/40 dark:border-slate-800 dark:odd:bg-slate-900/70 dark:even:bg-slate-900/40 dark:hover:bg-slate-800/60"
+                >
                   <td className="px-4 py-3 align-top text-sm text-slate-600 dark:text-slate-300">
                     {new Date(expense.created_at).toLocaleString()}
                   </td>
-                  <td className="px-4 py-3 align-top font-medium text-slate-800 dark:text-slate-100">{expense.item}</td>
-                  <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">{formatPHP(expense.price)}</td>
+                  <td className="px-4 py-3 align-top font-medium text-slate-800 dark:text-slate-100">
+                    {expense.item}
+                  </td>
                   <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">
-                    {residentsData.find((resident) => resident.id === expense.care_of)?.nickname}
+                    {formatPHP(expense.price)}
+                  </td>
+                  <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">
+                    {
+                      residentsData.find(
+                        (resident) => resident.id === expense.care_of
+                      )?.nickname
+                    }
                   </td>
                   <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">
                     {contributorsData
-                      .filter((contributor) => contributor.expense_id === expense.id)
+                      .filter(
+                        (contributor) => contributor.expense_id === expense.id
+                      )
                       .map((contributor, index, array) => (
                         <span key={contributor.resident_id}>
-                          {residentsData.find((resident) => resident.id === contributor.resident_id)?.nickname}
+                          {
+                            residentsData.find(
+                              (resident) =>
+                                resident.id === contributor.resident_id
+                            )?.nickname
+                          }
                           {index < array.length - 1 && <span>, </span>}
                         </span>
                       ))}
                   </td>
-                  <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">{expense.notes}</td>
+                  <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">
+                    {expense.notes}
+                  </td>
                   <td className="px-4 py-3 align-top">
                     <button
                       type="button"
-                      onClick={() => deleteExpense(expense.id)}
+                      onClick={() => confirmDeleteExpense(expense.id)}
                       className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-300/40 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-200 dark:hover:bg-rose-900/40"
                     >
                       Delete
@@ -412,6 +510,63 @@ const Expense = ({
           </table>
         </div>
       </div>
+
+      {/* Confirm Delete Modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="rounded-xl bg-white p-6 shadow-lg">
+            <p className="mb-4 text-slate-700">
+              Are you sure you want to delete this expense?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="rounded-lg bg-gray-200 px-3 py-1.5 text-sm"
+                onClick={() => setShowConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="rounded-lg bg-rose-500 px-3 py-1.5 text-sm text-white"
+                onClick={handleDeleteExpense}
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal (Add) */}
+      {showAddSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="rounded-xl bg-white p-6 shadow-lg text-center">
+            <p className="mb-4 text-emerald-600">Expense added successfully!</p>
+            <button
+              className="rounded-lg bg-teal-500 px-4 py-2 text-sm text-white"
+              onClick={() => setShowAddSuccess(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal (Delete) */}
+      {showDeleteSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="rounded-xl bg-white p-6 shadow-lg text-center">
+            <p className="mb-4 text-emerald-600">
+              Expense deleted successfully!
+            </p>
+            <button
+              className="rounded-lg bg-teal-500 px-4 py-2 text-sm text-white"
+              onClick={() => setShowDeleteSuccess(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

@@ -26,6 +26,7 @@ function App() {
   const [paymentsData, setPaymentsData] = useState<PaymentData[]>([]);
   const [paymentForData, setPaymentForData] = useState<PaymentForData[]>([]);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [activeSection, setActiveSection] = useState("summary"); // track active
 
   const navRef = useRef<HTMLDivElement | null>(null);
 
@@ -36,17 +37,28 @@ function App() {
     const navH = navRef.current?.offsetHeight ?? 80;
     const top = el.getBoundingClientRect().top + window.scrollY - (navH + 12);
     window.scrollTo({ top, behavior: "smooth" });
+    setActiveSection(id);
   };
 
-  // Keep a CSS var --nav-h updated (used by .anchor-section)
+  // Watch scroll position to update active section
   useEffect(() => {
-    const setVar = () => {
-      const h = navRef.current?.offsetHeight ?? 80;
-      document.documentElement.style.setProperty("--nav-h", `${h}px`);
+    const sections = ["summary", "resident", "expense", "payment"];
+    const onScroll = () => {
+      const navH = navRef.current?.offsetHeight ?? 80;
+      let current = activeSection;
+      for (const id of sections) {
+        const el = document.getElementById(id);
+        if (el) {
+          const offsetTop = el.offsetTop - navH - 20;
+          if (window.scrollY >= offsetTop) {
+            current = id;
+          }
+        }
+      }
+      setActiveSection(current);
     };
-    setVar();
-    window.addEventListener("resize", setVar);
-    return () => window.removeEventListener("resize", setVar);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   // Auth state
@@ -64,19 +76,22 @@ function App() {
     if (error) console.error("Logout error:", error.message);
   };
 
-  // Make #hash links also use our offset scrolling
+  // Force a consistent LIGHT theme
   useEffect(() => {
-    const onHash = () => {
-      const id = window.location.hash.replace("#", "");
-      if (id) requestAnimationFrame(() => scrollToId(id));
-    };
-    onHash();
-    window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
+    document.documentElement.classList.remove("dark");
+    const meta = document.querySelector('meta[name="color-scheme"]');
+    if (meta) {
+      meta.setAttribute("content", "light");
+    } else {
+      const m = document.createElement("meta");
+      m.setAttribute("name", "color-scheme");
+      m.setAttribute("content", "light");
+      document.head.appendChild(m);
+    }
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-500/15 via-indigo-500/15 to-slate-500/15 dark:from-slate-900 dark:via-slate-950 dark:to-black">
+    <div className="min-h-screen bg-white bg-[radial-gradient(ellipse_at_top,rgba(20,184,166,0.12),transparent_45%),radial-gradient(ellipse_at_bottom,rgba(99,102,241,0.12),transparent_50%)]">
       {!loggedIn ? (
         <Login supabase={supabase} />
       ) : (
@@ -84,7 +99,7 @@ function App() {
           {/* Sticky branded navbar */}
           <div
             ref={navRef}
-            className="sticky top-0 z-40 border-b border-slate-200/70 bg-nav-glass dark:border-slate-800/60 backdrop-blur"
+            className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60"
           >
             <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5">
               {/* Left: Logo + brand */}
@@ -94,29 +109,37 @@ function App() {
                   e.preventDefault();
                   scrollToId("summary");
                 }}
-                className="group flex items-center gap-2 text-slate-800 dark:text-slate-100"
+                className="group flex items-center gap-2 text-slate-900"
+                aria-label="B.I.T.C.H home"
               >
-                {/* Brand mark */}
+                {/* Brand mark — unified gradient + monogram */}
                 <svg
                   viewBox="0 0 64 64"
                   role="img"
-                  aria-label="App logo"
-                  className="h-9 w-9 drop-shadow-sm"
+                  aria-hidden="true"
+                  className="h-8 w-8 sm:h-9 sm:w-9 drop-shadow-sm"
                 >
                   <defs>
-                    <linearGradient id="navLogoGradient" x1="0" x2="1" y1="0" y2="1">
+                    {/* Use a stable id so it never clashes with other icons */}
+                    <linearGradient id="brandGrad" x1="0" x2="1" y1="0" y2="1">
                       <stop offset="0%" stopColor="#14b8a6" />
                       <stop offset="100%" stopColor="#6366f1" />
                     </linearGradient>
                   </defs>
-                  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#navLogoGradient)" />
+                  {/* Soft square */}
+                  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#brandGrad)" />
+                  {/* Monogram B built from paths for crisp rendering on all DPIs */}
                   <path
-                    d="M24 22h12.5c4.5 0 7.5 2.7 7.5 6.6c0 3.2-1.9 5.6-4.9 6.5v.1c2.7.7 4.4 2.8 4.4 5.7c0 4.3-3.3 7.1-8.7 7.1H24V22zm7.8 10.8c2.6 0 4.2-1.2 4.2-3.3s-1.6-3.2-4.2-3.2H29v6.5h2.8zm.9 12.2c3 0 4.9-1.4 4.9-3.8c0-2.3-1.9-3.6-4.9-3.6H29v7.4h3.7z"
+                    d="M24 20h14c6 0 10 3.5 10 8.6c0 3.7-2.2 6.4-5.7 7.6c2.9 1 4.7 3.3 4.7 6.6c0 5.2-4 8.2-10.6 8.2H24V20Zm8.5 13.1c3.1 0 5.1-1.5 5.1-4s-2-3.9-5.1-3.9H29v7.9h3.5Zm1.5 13.8c3.7 0 6.1-1.8 6.1-4.6c0-2.8-2.4-4.4-6.1-4.4H29v9h5Z"
                     fill="#fff"
-                    fillOpacity="0.95"
+                    fillOpacity="0.96"
                   />
                 </svg>
-                <span className="text-lg font-semibold tracking-wide">B.I.T.C.H</span>
+
+                {/* Wordmark — locked size/weight to match brand */}
+                <span className="select-none font-semibold tracking-wide text-[17px] sm:text-[18px] leading-none">
+                  B.I.T.C.H
+                </span>
               </a>
 
               {/* Center: Nav pills */}
@@ -130,7 +153,11 @@ function App() {
                   <button
                     key={id}
                     onClick={() => scrollToId(id)}
-                    className="rounded-lg border border-white/60 bg-white/70 px-4 py-2.5 text-base font-medium text-slate-700/90 shadow-sm transition hover:bg-white/90 hover:text-slate-900 dark:border-white/10 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15"
+                    className={`rounded-lg px-4 py-2.5 text-base font-medium shadow-sm transition ${
+                      activeSection === id
+                        ? "bg-indigo-500 text-white"
+                        : "bg-white/80 text-slate-700 hover:bg-white hover:text-slate-900 border border-slate-200/70"
+                    }`}
                   >
                     {label}
                   </button>
@@ -140,14 +167,14 @@ function App() {
               {/* Right: Logout */}
               <button
                 onClick={handleLogout}
-                className="rounded-full bg-rose-500 px-4 py-2 text-base font-semibold text-white shadow-sm ring-1 ring-white/30 transition hover:bg-rose-600"
+                className="rounded-full bg-rose-500 px-4 py-2 text-base font-semibold text-white shadow-sm ring-1 ring-rose-400/40 transition hover:bg-rose-600"
               >
                 Logout
               </button>
             </div>
           </div>
 
-          {/* Main content surface */}
+          {/* Main content */}
           <main className="mx-auto max-w-6xl px-4 py-8 space-y-8">
             <Summary
               residentsData={residentsData}
@@ -155,13 +182,11 @@ function App() {
               contributorsData={contributorsData}
               paymentsData={paymentsData}
             />
-
             <Resident
               supabase={supabase}
               residentsData={residentsData}
               setResidentsData={setResidentsData}
             />
-
             <Expense
               supabase={supabase}
               expensesData={expensesData}
@@ -170,7 +195,6 @@ function App() {
               setContributorsData={setContributorsData}
               residentsData={residentsData}
             />
-
             <Payment
               supabase={supabase}
               paymentsData={paymentsData}
