@@ -28,6 +28,9 @@ function App() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [activeSection, setActiveSection] = useState("summary"); // track active
 
+  // NEW: mobile menu toggle
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const navRef = useRef<HTMLDivElement | null>(null);
 
   // Smooth scroll that respects sticky navbar height
@@ -38,6 +41,8 @@ function App() {
     const top = el.getBoundingClientRect().top + window.scrollY - (navH + 12);
     window.scrollTo({ top, behavior: "smooth" });
     setActiveSection(id);
+    // close mobile menu after navigating
+    setMobileMenuOpen(false);
   };
 
   // Watch scroll position to update active section
@@ -57,7 +62,7 @@ function App() {
       }
       setActiveSection(current);
     };
-    window.addEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
@@ -99,9 +104,9 @@ function App() {
           {/* Sticky branded navbar */}
           <div
             ref={navRef}
-            className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60"
+            className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60"
           >
-            <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5">
+            <div className="mx-auto flex max-w-6xl items-center justify-between px-3 sm:px-4 py-2">
               {/* Left: Logo + brand */}
               <a
                 href="#summary"
@@ -128,7 +133,7 @@ function App() {
                   </defs>
                   {/* Soft square */}
                   <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#brandGrad)" />
-                  {/* Monogram B built from paths for crisp rendering on all DPIs */}
+                  {/* Monogram B */}
                   <path
                     d="M24 20h14c6 0 10 3.5 10 8.6c0 3.7-2.2 6.4-5.7 7.6c2.9 1 4.7 3.3 4.7 6.6c0 5.2-4 8.2-10.6 8.2H24V20Zm8.5 13.1c3.1 0 5.1-1.5 5.1-4s-2-3.9-5.1-3.9H29v7.9h3.5Zm1.5 13.8c3.7 0 6.1-1.8 6.1-4.6c0-2.8-2.4-4.4-6.1-4.4H29v9h5Z"
                     fill="#fff"
@@ -137,13 +142,13 @@ function App() {
                 </svg>
 
                 {/* Wordmark — locked size/weight to match brand */}
-                <span className="select-none font-semibold tracking-wide text-[17px] sm:text-[18px] leading-none">
+                <span className="select-none font-semibold tracking-wide text-[16px] sm:text-[18px] leading-none">
                   B.I.T.C.H
                 </span>
               </a>
 
-              {/* Center: Nav pills */}
-              <nav className="flex items-center gap-3">
+              {/* Center: Nav pills (desktop) */}
+              <nav className="hidden md:flex items-center gap-3">
                 {[
                   ["summary", "Summary"],
                   ["resident", "Residents"],
@@ -153,7 +158,7 @@ function App() {
                   <button
                     key={id}
                     onClick={() => scrollToId(id)}
-                    className={`rounded-lg px-4 py-2.5 text-base font-medium shadow-sm transition ${
+                    className={`rounded-lg px-4 py-2.5 text-base font-medium shadow-sm transition focus:outline-none focus:ring-4 focus:ring-indigo-400/30 ${
                       activeSection === id
                         ? "bg-indigo-500 text-white"
                         : "bg-white/80 text-slate-700 hover:bg-white hover:text-slate-900 border border-slate-200/70"
@@ -164,18 +169,65 @@ function App() {
                 ))}
               </nav>
 
-              {/* Right: Logout */}
-              <button
-                onClick={handleLogout}
-                className="rounded-full bg-rose-500 px-4 py-2 text-base font-semibold text-white shadow-sm ring-1 ring-rose-400/40 transition hover:bg-rose-600"
-              >
-                Logout
-              </button>
+              {/* Right: actions */}
+              <div className="flex items-center gap-2">
+                {/* Mobile hamburger */}
+                <button
+                  className="inline-flex items-center justify-center rounded-lg p-2 md:hidden border border-slate-200/70 bg-white/80 text-slate-700 shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-400/30"
+                  aria-label="Open menu"
+                  onClick={() => setMobileMenuOpen((v) => !v)}
+                >
+                  {/* simple hamburger icon */}
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </button>
+
+                {/* Logout */}
+                <button
+                  onClick={handleLogout}
+                  className="hidden sm:inline-flex rounded-full bg-rose-500 px-4 py-2 text-base font-semibold text-white shadow-sm ring-1 ring-rose-400/40 transition hover:bg-rose-600"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
+
+            {/* Mobile dropdown nav */}
+            {mobileMenuOpen && (
+              <div className="md:hidden border-t border-slate-200/70 bg-white/95 backdrop-blur px-3 py-2">
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    ["summary", "Summary"],
+                    ["resident", "Residents"],
+                    ["expense", "Expenses"],
+                    ["payment", "Payments"],
+                  ].map(([id, label]) => (
+                    <button
+                      key={id}
+                      onClick={() => scrollToId(id)}
+                      className={`rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition focus:outline-none focus:ring-2 focus:ring-indigo-400/30 ${
+                        activeSection === id
+                          ? "bg-indigo-500 text-white"
+                          : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/70"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={handleLogout}
+                    className="col-span-2 rounded-lg px-3 py-2 text-sm font-semibold text-white shadow-sm bg-rose-500 hover:bg-rose-600"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Main content */}
-          <main className="mx-auto max-w-6xl px-4 py-8 space-y-8">
+          <main className="mx-auto max-w-6xl px-3 sm:px-4 py-6 sm:py-8 space-y-6 sm:space-y-8">
             <Summary
               residentsData={residentsData}
               expensesData={expensesData}

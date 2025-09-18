@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   ContributorData,
   ExpenseData,
@@ -39,11 +39,16 @@ const Summary = ({
 }) => {
   const [oweTable, setOweTable] = useState<Tally>({});
 
+  // Compute pairwise balances
   useEffect(() => {
-    if (contributorsData.length === 0) return;
+    if (residentsData.length === 0) {
+      setOweTable({});
+      return;
+    }
 
     const tally: Tally = {};
 
+    // Initialize matrix with zeros (excluding self)
     residentsData.forEach((resident) => {
       tally[resident.id] = {};
       residentsData.forEach((otherResident) => {
@@ -53,27 +58,28 @@ const Summary = ({
       });
     });
 
+    // Add expenses (contributors owe the "care_of")
     expensesData.forEach((expense) => {
       const contributors = contributorsData.filter(
-        (contributor) => contributor.expense_id === expense.id
+        (c) => c.expense_id === expense.id
       );
-      const totalContributors = contributors.length;
-      const amountPerContributor = expense.price / totalContributors;
+      const totalContributors = contributors.length || 1; // avoid div by 0
+      const amountPerContributor =
+        Number(expense.price || 0) / totalContributors;
 
-      contributors.forEach((contributor) => {
-        if (contributor.resident_id !== expense.care_of) {
-          tally[contributor.resident_id][expense.care_of] +=
-            amountPerContributor;
-          tally[expense.care_of][contributor.resident_id] -=
-            amountPerContributor;
+      contributors.forEach((c) => {
+        if (c.resident_id !== expense.care_of) {
+          tally[c.resident_id][expense.care_of] += amountPerContributor;
+          tally[expense.care_of][c.resident_id] -= amountPerContributor;
         }
       });
     });
 
+    // Apply payments (reduce what paid_by owes to received_by)
     paymentsData.forEach((payment) => {
       const paidBy = payment.paid_by;
       const receivedBy = payment.received_by;
-      const amount = payment.amount;
+      const amount = Number(payment.amount || 0);
 
       if (paidBy !== receivedBy) {
         tally[paidBy][receivedBy] -= amount;
@@ -81,33 +87,43 @@ const Summary = ({
       }
     });
 
-    // Remove zero entries
-    Object.keys(tally).forEach((residentId) => {
-      Object.keys(tally[Number(residentId)]).forEach((otherResidentId) => {
-        if (
-          Number(
-            tally[Number(residentId)][Number(otherResidentId)].toFixed(2)
-          ) === 0
-        ) {
-          delete tally[Number(residentId)][Number(otherResidentId)];
-        }
+    // Strip ~zero values to keep the UI clean
+    Object.keys(tally).forEach((a) => {
+      Object.keys(tally[Number(a)]).forEach((b) => {
+        const v = Number(tally[Number(a)][Number(b)].toFixed(2));
+        if (v === 0) delete tally[Number(a)][Number(b)];
       });
-    });
-
-    // Remove empty resident entries
-    Object.keys(tally).forEach((residentId) => {
-      if (Object.keys(tally[Number(residentId)]).length === 0) {
-        delete tally[Number(residentId)];
-      }
+      if (Object.keys(tally[Number(a)]).length === 0) delete tally[Number(a)];
     });
 
     setOweTable(tally);
   }, [expensesData, contributorsData, residentsData, paymentsData]);
 
+  // Flatten rows for desktop table: only keep positive amounts (A owes B)
+  const tableRows = useMemo(() => {
+    const rows: { fromId: number; toId: number; amount: number }[] = [];
+    Object.entries(oweTable).forEach(([fromIdStr, toMap]) => {
+      const fromId = Number(fromIdStr);
+      Object.entries(toMap).forEach(([toIdStr, amount]) => {
+        if (amount > 0.009) {
+          rows.push({ fromId, toId: Number(toIdStr), amount });
+        }
+      });
+    });
+    // Optional: sort by amount desc
+    rows.sort((a, b) => b.amount - a.amount);
+    return rows;
+  }, [oweTable]);
+
+  const nameOf = (id: number) =>
+    residentsData.find((r) => r.id === id)?.nickname ?? `#${id}`;
+
+  const hasAnyBalances = tableRows.length > 0;
+
   return (
     <section id="summary" className="px-3 py-4 scroll-mt-28">
       {/* Header */}
-      <div className="mx-auto mb-4 flex max-w-3xl items-center justify-center gap-3">
+      <div className="mx-auto mb-4 flex max-w-4xl items-center justify-center gap-3">
         <div className="h-9 w-9">
           <svg
             viewBox="0 0 64 64"
@@ -140,45 +156,99 @@ const Summary = ({
         </div>
       </div>
 
-      {/* Cards per resident */}
-      {residentsData.map(
-        (resident) =>
-          Object.entries(oweTable).length > 0 &&
-          Object.keys(oweTable).includes(resident.id.toString()) && (
-            <div
-              className="mx-auto mb-4 max-w-3xl rounded-2xl border border-slate-200/70 bg-white/80 p-4 text-center shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/70"
-              key={resident.id}
-            >
-              <h4 className="mb-2 font-bold text-lg text-slate-800 dark:text-slate-100">
-                {resident.nickname}
-              </h4>
-              <ul className="space-y-1 text-sm">
-                {Object.entries(oweTable[resident.id]).map(
-                  ([otherResidentId, amount]) => {
-                    const otherResident = residentsData.find(
-                      (r) => r.id === Number(otherResidentId)
-                    );
+      {/* Empty state */}
+      {!hasAnyBalances && (
+        <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200/70 bg-white/80 p-4 text-center shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            🎉 All settled! No outstanding balances.
+          </p>
+        </div>
+      )}
+
+      {/* Desktop table (md+) */}
+      {hasAnyBalances && (
+        <div className="hidden md:block mx-auto max-w-4xl overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-0 rounded-2xl border border-slate-200/70 bg-white/80 text-left shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/60">
+            <thead>
+              <tr className="bg-slate-50/70 text-slate-600 dark:bg-slate-900/70 dark:text-slate-300">
+                <th className="px-4 py-3 text-sm font-semibold">Debtor</th>
+                <th className="px-4 py-3 text-sm font-semibold">Creditor</th>
+                <th className="px-4 py-3 text-sm font-semibold">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((row, idx) => (
+                <tr
+                  key={`${row.fromId}-${row.toId}`}
+                  className={`${
+                    idx % 2
+                      ? "bg-white/60 dark:bg-slate-900/40"
+                      : "bg-white/80 dark:bg-slate-900/50"
+                  } transition-colors hover:bg-indigo-50/40 dark:hover:bg-slate-800/60`}
+                >
+                  <td className="px-4 py-3 text-slate-800 dark:text-slate-100">
+                    {nameOf(row.fromId)}
+                  </td>
+                  <td className="px-4 py-3 text-slate-800 dark:text-slate-100">
+                    {nameOf(row.toId)}
+                  </td>
+                  <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">
+                    {formatPHP(row.amount)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Mobile cards (<md): grouped per resident like your original */}
+      {hasAnyBalances && (
+        <div className="md:hidden mx-auto max-w-4xl space-y-4">
+          {residentsData.map((resident) => {
+            const map = oweTable[resident.id];
+            if (!map || Object.keys(map).length === 0) return null;
+
+            return (
+              <div
+                key={resident.id}
+                className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/70"
+              >
+                <h4 className="mb-2 text-lg font-bold text-slate-800 dark:text-slate-100">
+                  {resident.nickname}
+                </h4>
+
+                <ul className="space-y-1 text-sm">
+                  {Object.entries(map).map(([otherIdStr, amount]) => {
+                    const otherId = Number(otherIdStr);
+                    const otherName = nameOf(otherId);
+
+                    // Positive => this resident owes; Negative => this resident collects
+                    const owes = amount > 0.009;
+                    if (!owes && amount > -0.009) return null; // ignore ~zero
+
                     return (
-                      <li key={otherResidentId}>
-                        {amount > 0 ? "To pay" : "To collect"}{" "}
+                      <li key={otherIdStr}>
+                        {owes ? "To pay" : "To collect"}{" "}
                         <strong
-                          className={`${
-                            amount > 0
+                          className={
+                            owes
                               ? "text-rose-600 dark:text-rose-400"
                               : "text-emerald-600 dark:text-emerald-400"
-                          }`}
+                          }
                         >
                           {formatPHP(Math.abs(amount))}
                         </strong>{" "}
-                        {amount > 0 ? "to" : "from"}{" "}
-                        <strong>{otherResident?.nickname}</strong>.
+                        {owes ? "to" : "from"}{" "}
+                        <strong>{otherName}</strong>.
                       </li>
                     );
-                  }
-                )}
-              </ul>
-            </div>
-          )
+                  })}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
       )}
     </section>
   );

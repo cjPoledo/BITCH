@@ -413,42 +413,25 @@ const Expense = ({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="relative z-0 mx-auto max-w-5xl overflow-hidden rounded-2xl border border-slate-200/70 bg-white/80 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
+      {/* Desktop Table */}
+      <div className="hidden md:block relative z-0 mx-auto max-w-5xl overflow-hidden rounded-2xl border border-slate-200/70 bg-white/80 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
         <div className="overflow-x-auto">
           <table className="min-w-full text-left">
             <thead>
               <tr className="bg-slate-50 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
-                  Date Added
-                </th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
-                  Item
-                </th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
-                  Price
-                </th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
-                  Care Of
-                </th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
-                  Contributors
-                </th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
-                  Notes
-                </th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
-                  Action
-                </th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Date Added</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Item</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Price</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Care Of</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Contributors</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Notes</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Action</th>
               </tr>
             </thead>
             <tbody>
               {expensesData.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400"
-                  >
+                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
                     No expenses yet. Add your first one above.
                   </td>
                 </tr>
@@ -462,39 +445,22 @@ const Expense = ({
                   <td className="px-4 py-3 align-top text-sm text-slate-600 dark:text-slate-300">
                     {new Date(expense.created_at).toLocaleString()}
                   </td>
-                  <td className="px-4 py-3 align-top font-medium text-slate-800 dark:text-slate-100">
-                    {expense.item}
-                  </td>
+                  <td className="px-4 py-3 align-top font-medium text-slate-800 dark:text-slate-100">{expense.item}</td>
+                  <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">{formatPHP(expense.price)}</td>
                   <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">
-                    {formatPHP(expense.price)}
-                  </td>
-                  <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">
-                    {
-                      residentsData.find(
-                        (resident) => resident.id === expense.care_of
-                      )?.nickname
-                    }
+                    {residentsData.find((resident) => resident.id === expense.care_of)?.nickname}
                   </td>
                   <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">
                     {contributorsData
-                      .filter(
-                        (contributor) => contributor.expense_id === expense.id
-                      )
+                      .filter((contributor) => contributor.expense_id === expense.id)
                       .map((contributor, index, array) => (
                         <span key={contributor.resident_id}>
-                          {
-                            residentsData.find(
-                              (resident) =>
-                                resident.id === contributor.resident_id
-                            )?.nickname
-                          }
+                          {residentsData.find((resident) => resident.id === contributor.resident_id)?.nickname}
                           {index < array.length - 1 && <span>, </span>}
                         </span>
                       ))}
                   </td>
-                  <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">
-                    {expense.notes}
-                  </td>
+                  <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">{expense.notes}</td>
                   <td className="px-4 py-3 align-top">
                     <button
                       type="button"
@@ -509,6 +475,52 @@ const Expense = ({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {expensesData.length === 0 && (
+          <div className="rounded-xl border border-slate-200 bg-white/80 p-4 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-400">
+            No expenses yet. Add your first one above.
+          </div>
+        )}
+        {expensesData.map((expense) => (
+          <div key={expense.id} id={`expense-${expense.id}`} className="rounded-xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h4 className="text-base font-semibold text-slate-800 dark:text-slate-100">{expense.item}</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(expense.created_at).toLocaleString()}</p>
+              </div>
+              <div className="text-right">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{formatPHP(expense.price)}</span>
+              </div>
+            </div>
+            <div className="mt-2 space-y-1 text-sm">
+              <p className="text-slate-700 dark:text-slate-200"><span className="font-medium">Care of:</span> {residentsData.find((r) => r.id === expense.care_of)?.nickname}</p>
+              <p className="text-slate-700 dark:text-slate-200">
+                <span className="font-medium">Contributors:</span> {
+                  contributorsData
+                    .filter((c) => c.expense_id === expense.id)
+                    .map((c) => residentsData.find((r) => r.id === c.resident_id)?.nickname)
+                    .filter(Boolean)
+                    .join(', ')
+                }
+              </p>
+              {expense.notes && (
+                <p className="text-slate-700 dark:text-slate-200"><span className="font-medium">Notes:</span> {expense.notes}</p>
+              )}
+            </div>
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => confirmDeleteExpense(expense.id)}
+                className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-300/40 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-200 dark:hover:bg-rose-900/40"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Confirm Delete Modal */}

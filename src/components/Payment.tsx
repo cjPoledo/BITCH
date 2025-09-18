@@ -15,13 +15,32 @@ const rsStyles = {
     ...base,
     borderRadius: 12,
     minHeight: 42,
-    borderColor: state.isFocused ? '#14b8a6' : '#e5e7eb',
-    boxShadow: state.isFocused ? '0 0 0 4px rgba(20,184,166,0.15)' : 'none',
-    ':hover': { borderColor: state.isFocused ? '#14b8a6' : '#cbd5e1' },
+    borderColor: state.isFocused ? "#14b8a6" : "#e5e7eb",
+    boxShadow: state.isFocused ? "0 0 0 4px rgba(20,184,166,0.15)" : "none",
+    ":hover": { borderColor: state.isFocused ? "#14b8a6" : "#cbd5e1" },
   }),
   menuPortal: (base: any) => ({ ...base, zIndex: 9999 }),
-  menu: (base: any) => ({ ...base, zIndex: 9999, borderRadius: 12, overflow: 'hidden' }),
+  menu: (base: any) => ({
+    ...base,
+    zIndex: 9999,
+    borderRadius: 12,
+    overflow: "hidden",
+  }),
 } as const;
+
+const formatPHP = (n: number | string) => {
+  const v = typeof n === "string" ? Number(n) : n;
+  if (!Number.isFinite(v as number)) return "₱0";
+  try {
+    return (v as number).toLocaleString("en-PH", {
+      style: "currency",
+      currency: "PHP",
+      maximumFractionDigits: 2,
+    });
+  } catch {
+    return `₱${v}`;
+  }
+};
 
 const Payment = ({
   supabase,
@@ -271,14 +290,14 @@ const Payment = ({
         </div>
         <div>
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Payments</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
             Record reimbursements and settlements
           </p>
         </div>
       </div>
 
       {/* Add payment card */}
-      <div className="relative z-10 mx-auto mb-6 max-w-5xl rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
+      <div className="relative z-10 mx-auto mb-6 max-w-5xl rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-6">
           {/* Paid by */}
           <div className="lg:col-span-1">
@@ -385,7 +404,7 @@ const Payment = ({
                 menuPosition="fixed"
               />
             </div>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
               Only expenses where the payer was a contributor and the receiver was the
               “care of” are shown.
             </p>
@@ -442,11 +461,103 @@ const Payment = ({
         </div>
       </div>
 
-      {/* Payments table */}
-      <div className="relative z-0 mx-auto max-w-5xl overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-0 rounded-2xl border border-slate-200/70 bg-white/70 text-left shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/60">
+      {/* ===== Mobile: card list (shown on < md) ===== */}
+      <div className="mx-auto mb-2 max-w-5xl space-y-3 md:hidden">
+        {paymentsData.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 text-center text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+            No payments yet. Add one above to get started.
+          </div>
+        ) : (
+          paymentsData.map((payment) => {
+            const paidBy =
+              residentsData.find((r) => r.id === payment.paid_by)?.nickname || "—";
+            const receivedBy =
+              residentsData.find((r) => r.id === payment.received_by)?.nickname || "—";
+            const linkedExpenses = paymentForData.filter(
+              (pf) => pf.payment_id === payment.id
+            );
+            const createdAt = new Date(payment.created_at).toLocaleString();
+
+            return (
+              <article
+                key={payment.id}
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+              >
+                {/* Top row: amount + date */}
+                <div className="flex items-baseline justify-between gap-3">
+                  <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    {formatPHP(payment.amount)}
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    {createdAt}
+                  </div>
+                </div>
+
+                {/* Who paid whom */}
+                <div className="mt-1 text-sm text-slate-700 dark:text-slate-200">
+                  <span className="font-medium">{paidBy}</span> →{" "}
+                  <span className="font-medium">{receivedBy}</span>
+                </div>
+
+                {/* Payment for: chips that anchor to expenses */}
+                <div className="mt-3">
+                  <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Payment For
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {linkedExpenses.length === 0 ? (
+                      <span className="text-sm text-slate-600 dark:text-slate-300">—</span>
+                    ) : (
+                      linkedExpenses.map((pf) => {
+                        const exp = expensesData.find((e) => e.id === pf.expense_id);
+                        if (!exp) return null;
+                        return (
+                          <a
+                            key={pf.expense_id}
+                            href={`#expense-${pf.expense_id}`}
+                            className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 underline decoration-indigo-300 underline-offset-2 hover:no-underline dark:border-indigo-700 dark:bg-indigo-900 dark:text-indigo-200"
+                          >
+                            {exp.item}
+                          </a>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Notes (optional) */}
+                {payment.notes && (
+                  <div className="mt-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      Notes
+                    </div>
+                    <div className="mt-1 text-sm text-slate-700 dark:text-slate-200">
+                      {payment.notes}
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => confirmDeletePayment(payment.id)}
+                    className="inline-flex w-full items-center justify-center rounded-xl border border-rose-200/60 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 shadow-sm transition hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-400/30 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </article>
+            );
+          })
+        )}
+      </div>
+
+      {/* ===== Desktop: table (shown on md+) ===== */}
+      <div className="relative z-0 mx-auto max-w-5xl overflow-x-auto hidden md:block">
+        <table className="min-w-full border-separate border-spacing-0 rounded-2xl border border-slate-200 bg-white text-left shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <thead>
-            <tr className="bg-slate-50/70 text-slate-600 dark:bg-slate-900/70 dark:text-slate-300">
+            <tr className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
               <th className="px-4 py-3 text-sm font-semibold">Date Added</th>
               <th className="px-4 py-3 text-sm font-semibold">Paid By</th>
               <th className="px-4 py-3 text-sm font-semibold">Received By</th>
@@ -457,14 +568,10 @@ const Payment = ({
             </tr>
           </thead>
           <tbody>
-            {paymentsData.map((payment, idx) => (
+            {paymentsData.map((payment) => (
               <tr
                 key={payment.id}
-                className={`transition-colors hover:bg-indigo-50/50 dark:hover:bg-slate-800/60 ${
-                  idx % 2
-                    ? "bg-white/60 dark:bg-slate-900/40"
-                    : "bg-white/80 dark:bg-slate-900/50"
-                }`}
+                className="transition-colors odd:bg-white even:bg-slate-50 hover:bg-indigo-50 dark:odd:bg-slate-900 dark:even:bg-slate-800 dark:hover:bg-slate-800"
               >
                 <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
                   {new Date(payment.created_at).toLocaleString()}
@@ -476,7 +583,7 @@ const Payment = ({
                   {residentsData.find((r) => r.id === payment.received_by)?.nickname}
                 </td>
                 <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">
-                  ₱{payment.amount}
+                  {formatPHP(payment.amount)}
                 </td>
                 <td className="px-4 py-3">
                   {paymentForData
@@ -485,7 +592,7 @@ const Payment = ({
                       <a
                         key={pf.expense_id}
                         href={`#expense-${pf.expense_id}`}
-                        className="text-indigo-600 underline decoration-indigo-300 underline-offset-2 hover:no-underline dark:text-indigo-400"
+                        className="text-indigo-700 underline decoration-indigo-300 underline-offset-2 hover:no-underline dark:text-indigo-300"
                       >
                         {expensesData.find((e) => e.id === pf.expense_id)?.item}
                         {index < array.length - 1 && ", "}
@@ -510,7 +617,7 @@ const Payment = ({
               <tr>
                 <td
                   colSpan={7}
-                  className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400"
+                  className="px-4 py-6 text-center text-sm text-slate-600 dark:text-slate-300"
                 >
                   No payments yet. Add one above to get started.
                 </td>
@@ -519,6 +626,7 @@ const Payment = ({
           </tbody>
         </table>
       </div>
+
       {/* Confirm Delete Modal */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type { ResidentData } from "../types/types";
 
 const Resident = ({
@@ -15,7 +15,18 @@ const Resident = ({
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [showAddSuccess, setShowAddSuccess] = useState(false); // ✅ for add success
+  const [showAddSuccess, setShowAddSuccess] = useState(false);
+  const [addError, setAddError] = useState<string>("");
+  const [adding, setAdding] = useState(false);
+
+  // Alphabetically sorted list (stable across realtime events)
+  const sortedResidents = useMemo(
+    () =>
+      [...residentsData].sort((a, b) =>
+        a.nickname.localeCompare(b.nickname, undefined, { sensitivity: "base" })
+      ),
+    [residentsData]
+  );
 
   // Initialize Residents
   useEffect(() => {
@@ -25,8 +36,10 @@ const Resident = ({
         .select("*")
         .order("nickname", { ascending: true });
       if (!error && data) setResidentsData(data);
+      if (error) console.error("[Residents] fetch error:", error.message);
     };
     fetchResidents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Subscribe to changes in the residents table
@@ -39,23 +52,36 @@ const Resident = ({
         { schema: "public", event: "*", table: "residents" },
         (payload) => {
           switch (payload.eventType) {
-            case "INSERT":
-              setResidentsData((prev) => [...prev, payload.new as ResidentData]);
+            case "INSERT": {
+              setResidentsData((prev) => {
+                const next = [...prev, payload.new as ResidentData];
+                next.sort((a, b) =>
+                  a.nickname.localeCompare(b.nickname, undefined, { sensitivity: "base" })
+                );
+                return next;
+              });
               break;
-            case "DELETE":
+            }
+            case "DELETE": {
               setResidentsData((prev) =>
                 prev.filter((r) => r.id !== (payload.old as ResidentData).id)
               );
               break;
-            case "UPDATE":
+            }
+            case "UPDATE": {
               setResidentsData((prev) =>
-                prev.map((r) =>
-                  r.id === (payload.new as ResidentData).id
-                    ? (payload.new as ResidentData)
-                    : r
-                )
+                prev
+                  .map((r) =>
+                    r.id === (payload.new as ResidentData).id
+                      ? (payload.new as ResidentData)
+                      : r
+                  )
+                  .sort((a, b) =>
+                    a.nickname.localeCompare(b.nickname, undefined, { sensitivity: "base" })
+                  )
               );
               break;
+            }
           }
         }
       )
@@ -64,7 +90,7 @@ const Resident = ({
     return () => {
       residentChannel.unsubscribe();
     };
-  }, []);
+  }, [setResidentsData, supabase]);
 
   // Open modal
   const confirmDeleteResident = (id: number) => {
@@ -79,18 +105,36 @@ const Resident = ({
     if (!error) {
       setShowConfirm(false);
       setShowSuccess(true);
+    } else {
+      console.error("[Residents] delete error:", error.message);
+      setShowConfirm(false);
     }
   };
 
   // Add Resident
   const addResident = async () => {
-    if (newResident.trim() === "") return;
-    const { error } = await supabase
-      .from("residents")
-      .insert([{ nickname: newResident.trim() }]);
+    const trimmed = newResident.trim();
+    if (trimmed === "") return;
+
+    // Client-side duplicate guard (case-insensitive)
+    const dup = residentsData.some(
+      (r) => r.nickname.trim().toLowerCase() === trimmed.toLowerCase()
+    );
+    if (dup) {
+      setAddError("That nickname already exists.");
+      return;
+    }
+
+    setAdding(true);
+    setAddError("");
+    const { error } = await supabase.from("residents").insert([{ nickname: trimmed }]);
+    setAdding(false);
     if (!error) {
       setNewResident("");
-      setShowAddSuccess(true); // ✅ show success modal
+      setShowAddSuccess(true);
+    } else {
+      console.error("[Residents] add error:", error.message);
+      setAddError("Could not add resident. Please try again.");
     }
   };
 
@@ -122,63 +166,79 @@ const Resident = ({
           </svg>
         </div>
         <div>
-          <h3 className="text-xl font-bold text-slate-800">Residents</h3>
-          <p className="text-sm text-slate-500">Manage household members</p>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Residents</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-300">Manage household members</p>
         </div>
       </div>
 
       {/* Add resident card */}
-      <div className="mx-auto mb-5 max-w-3xl rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-sm">
-        <label htmlFor="resident-nickname" className="mb-1 block text-sm font-medium text-slate-700">
+      <div className="mx-auto mb-5 max-w-3xl rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <label htmlFor="resident-nickname" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
           Add a resident
         </label>
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
             id="resident-nickname"
             type="text"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-800 shadow-sm outline-none"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-teal-400 focus:ring-4 focus:ring-teal-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             placeholder="Enter nickname"
             value={newResident}
             onChange={(e) => setNewResident(e.target.value)}
             onKeyDown={onEnterAdd}
+            aria-invalid={!!addError}
+            aria-describedby={addError ? "resident-error" : undefined}
           />
           <button
             type="button"
             onClick={addResident}
-            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-indigo-500 px-4 py-2.5 text-sm font-semibold text-white"
+            disabled={adding || newResident.trim() === ""}
+            className={`inline-flex shrink-0 items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white ${
+              adding || newResident.trim() === ""
+                ? "bg-slate-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-teal-500 to-indigo-500 hover:from-teal-600 hover:to-indigo-600"
+            }`}
+            aria-busy={adding}
           >
-            Add
+            {adding ? "Adding…" : "Add"}
           </button>
         </div>
+        {addError && (
+          <p id="resident-error" className="mt-2 text-xs text-rose-600 dark:text-rose-400">
+            {addError}
+          </p>
+        )}
       </div>
 
-      {/* Residents table */}
-      <div className="mx-auto max-w-3xl overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-0 rounded-2xl border border-slate-200/70 bg-white/70 text-left shadow-sm">
+      {/* Residents table — desktop */}
+      <div className="mx-auto hidden max-w-3xl overflow-x-auto md:block">
+        <table className="min-w-full border-separate border-spacing-0 rounded-2xl border border-slate-200 bg-white text-left shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <thead>
-            <tr className="bg-slate-50/70 text-slate-600">
+            <tr className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
               <th className="px-4 py-3 text-sm font-semibold">User</th>
               <th className="px-4 py-3 text-sm font-semibold text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {residentsData.map((resident) => (
-              <tr key={resident.id}>
-                <td className="px-4 py-3 text-slate-800">{resident.nickname}</td>
+            {sortedResidents.map((resident) => (
+              <tr
+                key={resident.id}
+                className="transition-colors odd:bg-white even:bg-slate-50 hover:bg-indigo-50/60 dark:odd:bg-slate-900 dark:even:bg-slate-800 dark:hover:bg-slate-800"
+              >
+                <td className="px-4 py-3 text-slate-800 dark:text-slate-100">{resident.nickname}</td>
                 <td className="px-4 py-3 text-right">
                   <button
                     type="button"
                     onClick={() => confirmDeleteResident(resident.id)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-rose-200/60 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100"
+                    className="inline-flex items-center gap-1 rounded-lg border border-rose-200/60 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200"
                   >
                     Delete
                   </button>
                 </td>
               </tr>
             ))}
-            {residentsData.length === 0 && (
+            {sortedResidents.length === 0 && (
               <tr>
-                <td colSpan={2} className="px-4 py-6 text-center text-sm text-slate-500">
+                <td colSpan={2} className="px-4 py-6 text-center text-sm text-slate-600 dark:text-slate-300">
                   No residents yet. Add one above to get started.
                 </td>
               </tr>
@@ -187,11 +247,44 @@ const Resident = ({
         </table>
       </div>
 
+      {/* Residents cards — mobile */}
+      <div className="mx-auto max-w-3xl space-y-3 md:hidden">
+        {sortedResidents.length === 0 && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 text-center text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+            No residents yet. Add one above to get started.
+          </div>
+        )}
+
+        {sortedResidents.map((resident) => (
+          <div
+            key={resident.id}
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-base font-semibold text-slate-800 dark:text-slate-100">
+                  {resident.nickname}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => confirmDeleteResident(resident.id)}
+                className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-rose-200/60 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Confirm Delete Modal */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="rounded-xl bg-white p-6 shadow-lg">
-            <p className="mb-4 text-slate-700">Are you sure you want to delete this resident?</p>
+          <div className="rounded-xl bg-white p-6 shadow-lg dark:bg-slate-900">
+            <p className="mb-4 text-slate-700 dark:text-slate-200">
+              Are you sure you want to delete this resident?
+            </p>
             <div className="flex justify-end gap-3">
               <button
                 className="rounded-lg bg-gray-200 px-3 py-1.5 text-sm"
@@ -213,7 +306,7 @@ const Resident = ({
       {/* Success Modal (Delete) */}
       {showSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="rounded-xl bg-white p-6 shadow-lg text-center">
+          <div className="rounded-xl bg-white p-6 shadow-lg text-center dark:bg-slate-900">
             <p className="mb-4 text-emerald-600">Resident deleted successfully!</p>
             <button
               className="rounded-lg bg-teal-500 px-4 py-2 text-sm text-white"
@@ -228,7 +321,7 @@ const Resident = ({
       {/* Success Modal (Add) */}
       {showAddSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="rounded-xl bg-white p-6 shadow-lg text-center">
+          <div className="rounded-xl bg-white p-6 shadow-lg text-center dark:bg-slate-900">
             <p className="mb-4 text-emerald-600">Resident added successfully!</p>
             <button
               className="rounded-lg bg-teal-500 px-4 py-2 text-sm text-white"
