@@ -18,6 +18,7 @@ const rsStyles = {
     borderColor: state.isFocused ? "#14b8a6" : "#e5e7eb",
     boxShadow: state.isFocused ? "0 0 0 4px rgba(20,184,166,0.15)" : "none",
     ":hover": { borderColor: state.isFocused ? "#14b8a6" : "#cbd5e1" },
+    backgroundColor: "#ffffff",
   }),
   menuPortal: (base: any) => ({ ...base, zIndex: 9999 }),
   menu: (base: any) => ({
@@ -70,9 +71,7 @@ const Payment = ({
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
 
   const newPaymentPaidByRef = useRef<SelectInstance<ResidentData> | null>(null);
-  const newPaymentReceivedByRef = useRef<SelectInstance<ResidentData> | null>(
-    null
-  );
+  const newPaymentReceivedByRef = useRef<SelectInstance<ResidentData> | null>(null);
   const newPaymentForRef = useRef<SelectInstance<ExpenseData> | null>(null);
 
   // Initialize Payments
@@ -117,9 +116,7 @@ const Payment = ({
               break;
             case "DELETE":
               setPaymentsData((prev) =>
-                prev.filter(
-                  (payment) => payment.id !== (payload.old as PaymentData).id
-                )
+                prev.filter((payment) => payment.id !== (payload.old as PaymentData).id)
               );
               break;
             case "UPDATE":
@@ -146,29 +143,22 @@ const Payment = ({
         (payload) => {
           switch (payload.eventType) {
             case "INSERT":
-              setPaymentForData((prev) => [
-                ...prev,
-                payload.new as PaymentForData,
-              ]);
+              setPaymentForData((prev) => [...prev, payload.new as PaymentForData]);
               break;
             case "DELETE":
               setPaymentForData((prev) =>
                 prev.filter(
                   (paymentFor) =>
-                    paymentFor.expense_id !==
-                      (payload.old as PaymentForData).expense_id ||
-                    paymentFor.payment_id !==
-                      (payload.old as PaymentForData).payment_id
+                    paymentFor.expense_id !== (payload.old as PaymentForData).expense_id ||
+                    paymentFor.payment_id !== (payload.old as PaymentForData).payment_id
                 )
               );
               break;
             case "UPDATE":
               setPaymentForData((prev) =>
                 prev.map((paymentFor) =>
-                  paymentFor.expense_id ===
-                    (payload.new as PaymentForData).expense_id &&
-                  paymentFor.payment_id ===
-                    (payload.new as PaymentForData).payment_id
+                  paymentFor.expense_id === (payload.new as PaymentForData).expense_id &&
+                  paymentFor.payment_id === (payload.new as PaymentForData).payment_id
                     ? (payload.new as PaymentForData)
                     : paymentFor
                 )
@@ -219,10 +209,7 @@ const Payment = ({
       notes: newPaymentNotes,
     };
 
-    const { data, error } = await supabase
-      .from("payments")
-      .insert([newPayment])
-      .select();
+    const { data, error } = await supabase.from("payments").insert([newPayment]).select();
 
     if (error) {
       console.error("Error adding payment:", error);
@@ -289,21 +276,17 @@ const Payment = ({
           </svg>
         </div>
         <div>
-          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Payments</h3>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            Record reimbursements and settlements
-          </p>
+          <h3 className="text-xl font-bold text-slate-800">Payments</h3>
+          <p className="text-sm text-slate-600">Record reimbursements and settlements</p>
         </div>
       </div>
 
       {/* Add payment card */}
-      <div className="relative z-10 mx-auto mb-6 max-w-5xl rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <div className="relative z-10 mx-auto mb-6 max-w-5xl rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-6">
           {/* Paid by */}
           <div className="lg:col-span-1">
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-              Paid By
-            </label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Paid By</label>
             <div className="relative z-50">
               <Select
                 ref={newPaymentPaidByRef}
@@ -325,9 +308,7 @@ const Payment = ({
 
           {/* Received by */}
           <div className="lg:col-span-1">
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-              Received By
-            </label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Received By</label>
             <div className="relative z-50">
               <Select
                 ref={newPaymentReceivedByRef}
@@ -348,10 +329,7 @@ const Payment = ({
 
           {/* Amount */}
           <div className="lg:col-span-1">
-            <label
-              htmlFor="amount"
-              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200"
-            >
+            <label htmlFor="amount" className="mb-1 block text-sm font-medium text-slate-700">
               Amount
             </label>
             <div className="relative">
@@ -366,7 +344,7 @@ const Payment = ({
                 value={newPaymentAmount}
                 onChange={(e) => setNewPaymentAmount(Number(e.target.value))}
                 onKeyDown={handleAmountKeyDown}
-                className="w-full rounded-xl border border-slate-200 bg-white px-8 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-teal-400 focus:ring-4 focus:ring-teal-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className="w-full rounded-xl border border-slate-200 bg-white px-8 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-teal-400 focus:ring-4 focus:ring-teal-400/20"
                 placeholder="0.00"
               />
             </div>
@@ -374,9 +352,7 @@ const Payment = ({
 
           {/* Payment for */}
           <div className="lg:col-span-2">
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-              Payment For
-            </label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Payment For</label>
             <div className="relative z-50">
               <Select
                 ref={newPaymentForRef}
@@ -404,18 +380,15 @@ const Payment = ({
                 menuPosition="fixed"
               />
             </div>
-            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-              Only expenses where the payer was a contributor and the receiver was the
-              “care of” are shown.
+            <p className="mt-1 text-xs text-slate-600">
+              Only expenses where the payer was a contributor and the receiver was the “care of”
+              are shown.
             </p>
           </div>
 
           {/* Notes */}
           <div className="lg:col-span-1">
-            <label
-              htmlFor="notes"
-              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200"
-            >
+            <label htmlFor="notes" className="mb-1 block text-sm font-medium text-slate-700">
               Notes
             </label>
             <input
@@ -423,7 +396,7 @@ const Payment = ({
               type="text"
               value={newPaymentNotes}
               onChange={(e) => setNewPaymentNotes(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20"
               placeholder="Optional"
             />
           </div>
@@ -464,7 +437,7 @@ const Payment = ({
       {/* ===== Mobile: card list (shown on < md) ===== */}
       <div className="mx-auto mb-2 max-w-5xl space-y-3 md:hidden">
         {paymentsData.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 text-center text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 text-center text-sm text-slate-600">
             No payments yet. Add one above to get started.
           </div>
         ) : (
@@ -473,40 +446,36 @@ const Payment = ({
               residentsData.find((r) => r.id === payment.paid_by)?.nickname || "—";
             const receivedBy =
               residentsData.find((r) => r.id === payment.received_by)?.nickname || "—";
-            const linkedExpenses = paymentForData.filter(
-              (pf) => pf.payment_id === payment.id
-            );
+            const linkedExpenses = paymentForData.filter((pf) => pf.payment_id === payment.id);
             const createdAt = new Date(payment.created_at).toLocaleString();
 
             return (
               <article
                 key={payment.id}
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
               >
                 {/* Top row: amount + date */}
                 <div className="flex items-baseline justify-between gap-3">
-                  <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  <div className="text-lg font-semibold text-slate-900">
                     {formatPHP(payment.amount)}
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    {createdAt}
-                  </div>
+                  <div className="text-xs text-slate-500">{createdAt}</div>
                 </div>
 
                 {/* Who paid whom */}
-                <div className="mt-1 text-sm text-slate-700 dark:text-slate-200">
+                <div className="mt-1 text-sm text-slate-700">
                   <span className="font-medium">{paidBy}</span> →{" "}
                   <span className="font-medium">{receivedBy}</span>
                 </div>
 
                 {/* Payment for: chips that anchor to expenses */}
                 <div className="mt-3">
-                  <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
                     Payment For
                   </div>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {linkedExpenses.length === 0 ? (
-                      <span className="text-sm text-slate-600 dark:text-slate-300">—</span>
+                      <span className="text-sm text-slate-600">—</span>
                     ) : (
                       linkedExpenses.map((pf) => {
                         const exp = expensesData.find((e) => e.id === pf.expense_id);
@@ -515,7 +484,7 @@ const Payment = ({
                           <a
                             key={pf.expense_id}
                             href={`#expense-${pf.expense_id}`}
-                            className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 underline decoration-indigo-300 underline-offset-2 hover:no-underline dark:border-indigo-700 dark:bg-indigo-900 dark:text-indigo-200"
+                            className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 underline decoration-indigo-300 underline-offset-2 hover:no-underline"
                           >
                             {exp.item}
                           </a>
@@ -528,12 +497,10 @@ const Payment = ({
                 {/* Notes (optional) */}
                 {payment.notes && (
                   <div className="mt-3">
-                    <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
                       Notes
                     </div>
-                    <div className="mt-1 text-sm text-slate-700 dark:text-slate-200">
-                      {payment.notes}
-                    </div>
+                    <div className="mt-1 text-sm text-slate-700">{payment.notes}</div>
                   </div>
                 )}
 
@@ -542,7 +509,7 @@ const Payment = ({
                   <button
                     type="button"
                     onClick={() => confirmDeletePayment(payment.id)}
-                    className="inline-flex w-full items-center justify-center rounded-xl border border-rose-200/60 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 shadow-sm transition hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-400/30 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200"
+                    className="inline-flex w-full items-center justify-center rounded-xl border border-rose-200/60 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 shadow-sm transition hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-400/30"
                   >
                     Delete
                   </button>
@@ -555,9 +522,9 @@ const Payment = ({
 
       {/* ===== Desktop: table (shown on md+) ===== */}
       <div className="relative z-0 mx-auto max-w-5xl overflow-x-auto hidden md:block">
-        <table className="min-w-full border-separate border-spacing-0 rounded-2xl border border-slate-200 bg-white text-left shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <table className="min-w-full border-separate border-spacing-0 rounded-2xl border border-slate-200 bg-white text-left shadow-sm">
           <thead>
-            <tr className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+            <tr className="bg-slate-100 text-slate-700">
               <th className="px-4 py-3 text-sm font-semibold">Date Added</th>
               <th className="px-4 py-3 text-sm font-semibold">Paid By</th>
               <th className="px-4 py-3 text-sm font-semibold">Received By</th>
@@ -571,18 +538,18 @@ const Payment = ({
             {paymentsData.map((payment) => (
               <tr
                 key={payment.id}
-                className="transition-colors odd:bg-white even:bg-slate-50 hover:bg-indigo-50 dark:odd:bg-slate-900 dark:even:bg-slate-800 dark:hover:bg-slate-800"
+                className="transition-colors odd:bg-white even:bg-slate-50 hover:bg-indigo-50/60"
               >
-                <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
+                <td className="px-4 py-3 text-slate-700">
                   {new Date(payment.created_at).toLocaleString()}
                 </td>
-                <td className="px-4 py-3 text-slate-800 dark:text-slate-100">
+                <td className="px-4 py-3 text-slate-800">
                   {residentsData.find((r) => r.id === payment.paid_by)?.nickname}
                 </td>
-                <td className="px-4 py-3 text-slate-800 dark:text-slate-100">
+                <td className="px-4 py-3 text-slate-800">
                   {residentsData.find((r) => r.id === payment.received_by)?.nickname}
                 </td>
-                <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">
+                <td className="px-4 py-3 font-medium text-slate-900">
                   {formatPHP(payment.amount)}
                 </td>
                 <td className="px-4 py-3">
@@ -592,20 +559,18 @@ const Payment = ({
                       <a
                         key={pf.expense_id}
                         href={`#expense-${pf.expense_id}`}
-                        className="text-indigo-700 underline decoration-indigo-300 underline-offset-2 hover:no-underline dark:text-indigo-300"
+                        className="text-indigo-700 underline decoration-indigo-300 underline-offset-2 hover:no-underline"
                       >
                         {expensesData.find((e) => e.id === pf.expense_id)?.item}
                         {index < array.length - 1 && ", "}
                       </a>
                     ))}
                 </td>
-                <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
-                  {payment.notes}
-                </td>
+                <td className="px-4 py-3 text-slate-700">{payment.notes}</td>
                 <td className="px-4 py-3 text-right">
                   <button
                     type="button"
-                    className="inline-flex items-center gap-1 rounded-lg border border-rose-200/60 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 shadow-sm transition hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-400/30 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200"
+                    className="inline-flex items-center gap-1 rounded-lg border border-rose-200/60 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 shadow-sm transition hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-400/30"
                     onClick={() => confirmDeletePayment(payment.id)}
                   >
                     Delete
@@ -615,10 +580,7 @@ const Payment = ({
             ))}
             {paymentsData.length === 0 && (
               <tr>
-                <td
-                  colSpan={7}
-                  className="px-4 py-6 text-center text-sm text-slate-600 dark:text-slate-300"
-                >
+                <td colSpan={7} className="px-4 py-6 text-center text-sm text-slate-600">
                   No payments yet. Add one above to get started.
                 </td>
               </tr>

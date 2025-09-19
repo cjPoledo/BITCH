@@ -71,11 +71,13 @@ const Expense = ({
   const [newExpensePrice, setNewExpensePrice] = useState(0);
   const [newExpenseNotes, setNewExpenseNotes] = useState("");
 
-  // NEW (modals like Residents)
+  // Modal & action state
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showAddSuccess, setShowAddSuccess] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const newExpenseCareOfRef = useRef<SelectInstance<ResidentData> | null>(null);
   const newExpenseContributorsRef = useRef<SelectInstance<ResidentData> | null>(
@@ -108,9 +110,10 @@ const Expense = ({
     };
     fetchExpenses();
     fetchContributors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Subscribe to changes in the expenses table
+  // Subscribe to changes in the expenses & contributors tables
   useEffect(() => {
     const expenseChannel = supabase.channel("expense-channel");
     expenseChannel
@@ -122,7 +125,6 @@ const Expense = ({
             case "INSERT":
               setExpensesData((prev) => [payload.new as ExpenseData, ...prev]);
               break;
-
             case "DELETE":
               setExpensesData((prev) =>
                 prev.filter(
@@ -130,7 +132,6 @@ const Expense = ({
                 )
               );
               break;
-
             case "UPDATE":
               setExpensesData((prev) =>
                 prev.map((expense) =>
@@ -140,7 +141,6 @@ const Expense = ({
                 )
               );
               break;
-
             default:
               break;
           }
@@ -161,7 +161,6 @@ const Expense = ({
                 payload.new as ContributorData,
               ]);
               break;
-
             case "DELETE":
               setContributorsData((prev) =>
                 prev.filter(
@@ -173,7 +172,6 @@ const Expense = ({
                 )
               );
               break;
-
             case "UPDATE":
               setContributorsData((prev) =>
                 prev.map((contributor) =>
@@ -198,7 +196,7 @@ const Expense = ({
       expenseChannel.unsubscribe();
       contributorChannel.unsubscribe();
     };
-  }, []);
+  }, [setExpensesData, setContributorsData, supabase]);
 
   // ---- DELETE expense (Modal flow) ----
   const confirmDeleteExpense = (id: number) => {
@@ -208,71 +206,89 @@ const Expense = ({
 
   const handleDeleteExpense = async () => {
     if (!deleteId) return;
-    const { error } = await supabase
-      .from("expenses")
-      .delete()
-      .eq("id", deleteId);
-    if (error) {
-      console.error("Error deleting expense:", error);
-      return;
+    try {
+      setDeleting(true);
+      const { error } = await supabase
+        .from("expenses")
+        .delete()
+        .eq("id", deleteId);
+      if (error) throw error;
+      setShowConfirm(false);
+      setShowDeleteSuccess(true);
+    } catch (err) {
+      console.error("Error deleting expense:", (err as any)?.message || err);
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
     }
-    setShowConfirm(false);
-    setShowDeleteSuccess(true);
   };
 
   // ---- ADD expense (shows success modal on insert) ----
   const addExpense = async () => {
+    const trimmedItem = newExpenseItem.replace(/\s+/g, " ").trim();
     if (
-      newExpenseItem.trim() === "" ||
+      trimmedItem === "" ||
       newExpensePrice <= 0 ||
-      newExpenseCareOfRef.current?.getValue().length === 0 ||
-      newExpenseContributorsRef.current?.getValue().length === 0
+      (newExpenseCareOfRef.current?.getValue().length || 0) === 0 ||
+      (newExpenseContributorsRef.current?.getValue().length || 0) === 0
     )
       return;
 
-    const newExpense = {
-      item: newExpenseItem,
-      price: newExpensePrice,
-      care_of: newExpenseCareOfRef.current?.getValue()[0].id,
-      notes: newExpenseNotes,
-    };
+    setAdding(true);
 
-    const { data, error } = await supabase
-      .from("expenses")
-      .insert([newExpense])
-      .select();
+    try {
+      const careOf = newExpenseCareOfRef.current!.getValue()[0].id as number;
+      const contributors =
+        (newExpenseContributorsRef.current!.getValue() || []) as unknown as ResidentData[];
 
-    if (error) {
-      console.error("Error adding expense:", error);
-      return;
-    }
-
-    const expenseInsertData = data!;
-    // Insert contributors (fire-and-forget; UI will receive via realtime)
-    newExpenseContributorsRef.current?.getValue().forEach(async (contributor) => {
-      const { error } = await supabase
-        .from("contributors")
+      const { data, error } = await supabase
+        .from("expenses")
         .insert([
           {
-            expense_id: expenseInsertData[0].id,
-            resident_id: contributor.id,
+            item: trimmedItem,
+            price: newExpensePrice,
+            care_of: careOf,
+            notes: newExpenseNotes,
           },
         ])
         .select();
-      if (error) {
-        console.error("Error adding contributor:", error);
+
+      if (error) throw error;
+      const expenseId = data![0].id as number;
+
+      // Batch insert contributors in one go
+      const rows = contributors.map((c) => ({
+        expense_id: expenseId,
+        resident_id: c.id,
+      }));
+      if (rows.length) {
+        const { error: cErr } = await supabase
+          .from("contributors")
+          .insert(rows)
+          .select();
+        if (cErr) throw cErr;
       }
-    });
 
-    // Clear inputs
-    setNewExpenseItem("");
-    setNewExpensePrice(0);
-    newExpenseCareOfRef.current?.clearValue();
-    newExpenseContributorsRef.current?.clearValue();
-    setNewExpenseNotes("");
+      // Clear inputs
+      setNewExpenseItem("");
+      setNewExpensePrice(0);
+      newExpenseCareOfRef.current?.clearValue();
+      newExpenseContributorsRef.current?.clearValue();
+      setNewExpenseNotes("");
 
-    // Show success modal (match Residents behavior)
-    setShowAddSuccess(true);
+      setShowAddSuccess(true);
+    } catch (err) {
+      console.error("Error adding expense:", (err as any)?.message || err);
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const onEnterAdd: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addExpense();
+    }
   };
 
   return (
@@ -338,6 +354,9 @@ const Expense = ({
               placeholder="Enter item"
               value={newExpenseItem}
               onChange={(e) => setNewExpenseItem(e.target.value)}
+              onKeyDown={onEnterAdd}
+              autoFocus
+              maxLength={80}
             />
           </div>
           <div className="md:col-span-2">
@@ -350,8 +369,10 @@ const Expense = ({
               placeholder="0.00"
               value={newExpensePrice}
               onChange={(e) => setNewExpensePrice(Number(e.target.value))}
+              onKeyDown={onEnterAdd}
               min={0}
               step={0.01}
+              inputMode="decimal"
             />
           </div>
           <div className="md:col-span-3">
@@ -399,15 +420,23 @@ const Expense = ({
               placeholder="Optional notes"
               value={newExpenseNotes}
               onChange={(e) => setNewExpenseNotes(e.target.value)}
+              maxLength={140}
             />
           </div>
           <div className="md:col-span-3 flex items-end">
             <button
               type="button"
               onClick={addExpense}
-              className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-indigo-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:from-teal-600 hover:to-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-400/30"
+              disabled={adding}
+              className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-indigo-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:from-teal-600 hover:to-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-400/30 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Add Expense
+              {adding ? (
+                <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+              ) : null}
+              {adding ? "Adding…" : "Add Expense"}
             </button>
           </div>
         </div>
@@ -465,7 +494,8 @@ const Expense = ({
                     <button
                       type="button"
                       onClick={() => confirmDeleteExpense(expense.id)}
-                      className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-300/40 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-200 dark:hover:bg-rose-900/40"
+                      disabled={deleting}
+                      className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-300/40 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-200 dark:hover:bg-rose-900/40 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       Delete
                     </button>
@@ -514,7 +544,8 @@ const Expense = ({
               <button
                 type="button"
                 onClick={() => confirmDeleteExpense(expense.id)}
-                className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-300/40 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-200 dark:hover:bg-rose-900/40"
+                disabled={deleting}
+                className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-300/40 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-200 dark:hover:bg-rose-900/40 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Delete
               </button>
@@ -534,14 +565,16 @@ const Expense = ({
               <button
                 className="rounded-lg bg-gray-200 px-3 py-1.5 text-sm"
                 onClick={() => setShowConfirm(false)}
+                disabled={deleting}
               >
                 Cancel
               </button>
               <button
-                className="rounded-lg bg-rose-500 px-3 py-1.5 text-sm text-white"
+                className="rounded-lg bg-rose-500 px-3 py-1.5 text-sm text-white disabled:opacity-70"
                 onClick={handleDeleteExpense}
+                disabled={deleting}
               >
-                Yes, Delete
+                {deleting ? "Deleting…" : "Yes, Delete"}
               </button>
             </div>
           </div>

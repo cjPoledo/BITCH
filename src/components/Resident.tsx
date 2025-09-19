@@ -18,12 +18,13 @@ const Resident = ({
   const [showAddSuccess, setShowAddSuccess] = useState(false);
   const [addError, setAddError] = useState<string>("");
   const [adding, setAdding] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Alphabetically sorted list (stable across realtime events)
   const sortedResidents = useMemo(
     () =>
       [...residentsData].sort((a, b) =>
-        a.nickname.localeCompare(b.nickname, undefined, { sensitivity: "base" })
+        a.nickname.localeCompare(b.nickname, undefined, { sensitivity: "base", numeric: true })
       ),
     [residentsData]
   );
@@ -56,7 +57,7 @@ const Resident = ({
               setResidentsData((prev) => {
                 const next = [...prev, payload.new as ResidentData];
                 next.sort((a, b) =>
-                  a.nickname.localeCompare(b.nickname, undefined, { sensitivity: "base" })
+                  a.nickname.localeCompare(b.nickname, undefined, { sensitivity: "base", numeric: true })
                 );
                 return next;
               });
@@ -77,7 +78,7 @@ const Resident = ({
                       : r
                   )
                   .sort((a, b) =>
-                    a.nickname.localeCompare(b.nickname, undefined, { sensitivity: "base" })
+                    a.nickname.localeCompare(b.nickname, undefined, { sensitivity: "base", numeric: true })
                   )
               );
               break;
@@ -95,13 +96,16 @@ const Resident = ({
   // Open modal
   const confirmDeleteResident = (id: number) => {
     setDeleteId(id);
+    setDeleting(false);
     setShowConfirm(true);
   };
 
   // Actually delete
   const handleDelete = async () => {
     if (!deleteId) return;
+    setDeleting(true);
     const { error } = await supabase.from("residents").delete().eq("id", deleteId);
+    setDeleting(false);
     if (!error) {
       setShowConfirm(false);
       setShowSuccess(true);
@@ -113,7 +117,7 @@ const Resident = ({
 
   // Add Resident
   const addResident = async () => {
-    const trimmed = newResident.trim();
+    const trimmed = newResident.replace(/\s+/g, " ").trim();
     if (trimmed === "") return;
 
     // Client-side duplicate guard (case-insensitive)
@@ -187,6 +191,8 @@ const Resident = ({
             onKeyDown={onEnterAdd}
             aria-invalid={!!addError}
             aria-describedby={addError ? "resident-error" : undefined}
+            autoFocus
+            maxLength={40}
           />
           <button
             type="button"
@@ -229,9 +235,14 @@ const Resident = ({
                   <button
                     type="button"
                     onClick={() => confirmDeleteResident(resident.id)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-rose-200/60 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200"
+                    disabled={deleting}
+                    className={`inline-flex items-center gap-1 rounded-lg border border-rose-200/60 px-2.5 py-1.5 text-xs font-medium shadow-sm transition focus:outline-none focus:ring-2 focus:ring-rose-400/30 ${
+                      deleting
+                        ? "bg-rose-100 text-rose-400 cursor-not-allowed"
+                        : "bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200"
+                    }`}
                   >
-                    Delete
+                    {deleting ? "Deleting…" : "Delete"}
                   </button>
                 </td>
               </tr>
@@ -269,9 +280,14 @@ const Resident = ({
               <button
                 type="button"
                 onClick={() => confirmDeleteResident(resident.id)}
-                className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-rose-200/60 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200"
+                disabled={deleting}
+                className={`inline-flex items-center gap-1 rounded-lg border border-rose-200/60 px-2.5 py-1.5 text-xs font-medium shadow-sm transition focus:outline-none focus:ring-2 focus:ring-rose-400/30 ${
+                  deleting
+                    ? "bg-rose-100 text-rose-400 cursor-not-allowed"
+                    : "bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200"
+                }`}
               >
-                Delete
+                {deleting ? "Deleting…" : "Delete"}
               </button>
             </div>
           </div>
@@ -289,14 +305,17 @@ const Resident = ({
               <button
                 className="rounded-lg bg-gray-200 px-3 py-1.5 text-sm"
                 onClick={() => setShowConfirm(false)}
+                disabled={deleting}
               >
                 Cancel
               </button>
               <button
-                className="rounded-lg bg-rose-500 px-3 py-1.5 text-sm text-white"
+                className={`rounded-lg px-3 py-1.5 text-sm text-white ${deleting ? "bg-rose-300 cursor-not-allowed" : "bg-rose-500"}`}
                 onClick={handleDelete}
+                disabled={deleting}
+                aria-busy={deleting}
               >
-                Yes, Delete
+                {deleting ? "Deleting…" : "Yes, Delete"}
               </button>
             </div>
           </div>

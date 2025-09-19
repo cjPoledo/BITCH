@@ -1,15 +1,14 @@
 @import "tailwindcss";
 
+/* Force a light-only UI regardless of OS theme */
+:root { color-scheme: light; }
+html.dark { color-scheme: light; }
+
 /* Brand-consistent, readable page background */
 .bg-app-gradient {
   background-image: linear-gradient(to bottom right, #f0fdfa, #ffffff 35%, #eef2ff);
 }
 
-@media (prefers-color-scheme: dark) {
-  .bg-app-gradient-dark {
-    background-image: linear-gradient(to bottom right, #0b1320, #0a0f1a 40%, #0f172a);
-  }
-}
 
 /* Semi-glass navbar backdrop that blends with the gradient */
 .bg-nav-glass {

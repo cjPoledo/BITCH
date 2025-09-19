@@ -19,6 +19,8 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
+type SectionId = "summary" | "resident" | "expense" | "payment";
+
 function App() {
   const [residentsData, setResidentsData] = useState<ResidentData[]>([]);
   const [expensesData, setExpensesData] = useState<ExpenseData[]>([]);
@@ -26,7 +28,7 @@ function App() {
   const [paymentsData, setPaymentsData] = useState<PaymentData[]>([]);
   const [paymentForData, setPaymentForData] = useState<PaymentForData[]>([]);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [activeSection, setActiveSection] = useState("summary"); // track active
+  const [activeSection, setActiveSection] = useState<SectionId>("summary");
 
   // NEW: mobile menu toggle
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -34,7 +36,7 @@ function App() {
   const navRef = useRef<HTMLDivElement | null>(null);
 
   // Smooth scroll that respects sticky navbar height
-  const scrollToId = (id: string) => {
+  const scrollToId = (id: SectionId) => {
     const el = document.getElementById(id);
     if (!el) return;
     const navH = navRef.current?.offsetHeight ?? 80;
@@ -47,10 +49,10 @@ function App() {
 
   // Watch scroll position to update active section
   useEffect(() => {
-    const sections = ["summary", "resident", "expense", "payment"];
+    const sections: SectionId[] = ["summary", "resident", "expense", "payment"];
     const onScroll = () => {
       const navH = navRef.current?.offsetHeight ?? 80;
-      let current = activeSection;
+      let current: SectionId = activeSection;
       for (const id of sections) {
         const el = document.getElementById(id);
         if (el) {
@@ -64,6 +66,7 @@ function App() {
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auth state
@@ -157,7 +160,7 @@ function App() {
                 ].map(([id, label]) => (
                   <button
                     key={id}
-                    onClick={() => scrollToId(id)}
+                    onClick={() => scrollToId(id as SectionId)}
                     className={`rounded-lg px-4 py-2.5 text-base font-medium shadow-sm transition focus:outline-none focus:ring-4 focus:ring-indigo-400/30 ${
                       activeSection === id
                         ? "bg-indigo-500 text-white"
@@ -205,7 +208,7 @@ function App() {
                   ].map(([id, label]) => (
                     <button
                       key={id}
-                      onClick={() => scrollToId(id)}
+                      onClick={() => scrollToId(id as SectionId)}
                       className={`rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition focus:outline-none focus:ring-2 focus:ring-indigo-400/30 ${
                         activeSection === id
                           ? "bg-indigo-500 text-white"
