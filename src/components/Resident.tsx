@@ -20,16 +20,19 @@ const Resident = ({
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // Alphabetically sorted list (stable across realtime events)
+  // Alphabetically sorted list
   const sortedResidents = useMemo(
     () =>
       [...residentsData].sort((a, b) =>
-        a.nickname.localeCompare(b.nickname, undefined, { sensitivity: "base", numeric: true })
+        a.nickname.localeCompare(b.nickname, undefined, {
+          sensitivity: "base",
+          numeric: true,
+        })
       ),
     [residentsData]
   );
 
-  // Initialize Residents
+  // Fetch Residents on mount
   useEffect(() => {
     const fetchResidents = async () => {
       const { data, error } = await supabase
@@ -43,7 +46,7 @@ const Resident = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Subscribe to changes in the residents table
+  // Subscribe to realtime updates
   useEffect(() => {
     const residentChannel = supabase.channel("residents-channel");
 
@@ -57,7 +60,10 @@ const Resident = ({
               setResidentsData((prev) => {
                 const next = [...prev, payload.new as ResidentData];
                 next.sort((a, b) =>
-                  a.nickname.localeCompare(b.nickname, undefined, { sensitivity: "base", numeric: true })
+                  a.nickname.localeCompare(b.nickname, undefined, {
+                    sensitivity: "base",
+                    numeric: true,
+                  })
                 );
                 return next;
               });
@@ -78,7 +84,10 @@ const Resident = ({
                       : r
                   )
                   .sort((a, b) =>
-                    a.nickname.localeCompare(b.nickname, undefined, { sensitivity: "base", numeric: true })
+                    a.nickname.localeCompare(b.nickname, undefined, {
+                      sensitivity: "base",
+                      numeric: true,
+                    })
                   )
               );
               break;
@@ -93,14 +102,13 @@ const Resident = ({
     };
   }, [setResidentsData, supabase]);
 
-  // Open modal
+  // Delete flow
   const confirmDeleteResident = (id: number) => {
     setDeleteId(id);
     setDeleting(false);
     setShowConfirm(true);
   };
 
-  // Actually delete
   const handleDelete = async () => {
     if (!deleteId) return;
     setDeleting(true);
@@ -115,12 +123,12 @@ const Resident = ({
     }
   };
 
-  // Add Resident
+  // Add resident
   const addResident = async () => {
     const trimmed = newResident.replace(/\s+/g, " ").trim();
     if (trimmed === "") return;
 
-    // Client-side duplicate guard (case-insensitive)
+    // duplicate guard
     const dup = residentsData.some(
       (r) => r.nickname.trim().toLowerCase() === trimmed.toLowerCase()
     );
@@ -170,21 +178,21 @@ const Resident = ({
           </svg>
         </div>
         <div>
-          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Residents</h3>
-          <p className="text-sm text-slate-600 dark:text-slate-300">Manage household members</p>
+          <h3 className="text-xl font-bold text-slate-800">Residents</h3>
+          <p className="text-sm text-slate-600">Manage household members</p>
         </div>
       </div>
 
       {/* Add resident card */}
-      <div className="mx-auto mb-5 max-w-3xl rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <label htmlFor="resident-nickname" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
+      <div className="mx-auto mb-5 max-w-3xl rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <label htmlFor="resident-nickname" className="mb-1 block text-sm font-medium text-slate-700">
           Add a resident
         </label>
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
             id="resident-nickname"
             type="text"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-teal-400 focus:ring-4 focus:ring-teal-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-teal-400 focus:ring-4 focus:ring-teal-400/20"
             placeholder="Enter nickname"
             value={newResident}
             onChange={(e) => setNewResident(e.target.value)}
@@ -209,7 +217,7 @@ const Resident = ({
           </button>
         </div>
         {addError && (
-          <p id="resident-error" className="mt-2 text-xs text-rose-600 dark:text-rose-400">
+          <p id="resident-error" className="mt-2 text-xs text-rose-600">
             {addError}
           </p>
         )}
@@ -217,9 +225,9 @@ const Resident = ({
 
       {/* Residents table — desktop */}
       <div className="mx-auto hidden max-w-3xl overflow-x-auto md:block">
-        <table className="min-w-full border-separate border-spacing-0 rounded-2xl border border-slate-200 bg-white text-left shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <table className="min-w-full border-separate border-spacing-0 rounded-2xl border border-slate-200 bg-white text-left shadow-sm">
           <thead>
-            <tr className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+            <tr className="bg-slate-100 text-slate-700">
               <th className="px-4 py-3 text-sm font-semibold">User</th>
               <th className="px-4 py-3 text-sm font-semibold text-right">Actions</th>
             </tr>
@@ -228,9 +236,9 @@ const Resident = ({
             {sortedResidents.map((resident) => (
               <tr
                 key={resident.id}
-                className="transition-colors odd:bg-white even:bg-slate-50 hover:bg-indigo-50/60 dark:odd:bg-slate-900 dark:even:bg-slate-800 dark:hover:bg-slate-800"
+                className="transition-colors odd:bg-white even:bg-slate-50 hover:bg-indigo-50/60"
               >
-                <td className="px-4 py-3 text-slate-800 dark:text-slate-100">{resident.nickname}</td>
+                <td className="px-4 py-3 text-slate-800">{resident.nickname}</td>
                 <td className="px-4 py-3 text-right">
                   <button
                     type="button"
@@ -239,7 +247,7 @@ const Resident = ({
                     className={`inline-flex items-center gap-1 rounded-lg border border-rose-200/60 px-2.5 py-1.5 text-xs font-medium shadow-sm transition focus:outline-none focus:ring-2 focus:ring-rose-400/30 ${
                       deleting
                         ? "bg-rose-100 text-rose-400 cursor-not-allowed"
-                        : "bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200"
+                        : "bg-rose-50 text-rose-700 hover:bg-rose-100"
                     }`}
                   >
                     {deleting ? "Deleting…" : "Delete"}
@@ -249,7 +257,7 @@ const Resident = ({
             ))}
             {sortedResidents.length === 0 && (
               <tr>
-                <td colSpan={2} className="px-4 py-6 text-center text-sm text-slate-600 dark:text-slate-300">
+                <td colSpan={2} className="px-4 py-6 text-center text-sm text-slate-600">
                   No residents yet. Add one above to get started.
                 </td>
               </tr>
@@ -261,7 +269,7 @@ const Resident = ({
       {/* Residents cards — mobile */}
       <div className="mx-auto max-w-3xl space-y-3 md:hidden">
         {sortedResidents.length === 0 && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 text-center text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 text-center text-sm text-slate-600 shadow-sm">
             No residents yet. Add one above to get started.
           </div>
         )}
@@ -269,11 +277,11 @@ const Resident = ({
         {sortedResidents.map((resident) => (
           <div
             key={resident.id}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-base font-semibold text-slate-800 dark:text-slate-100">
+                <div className="text-base font-semibold text-slate-800">
                   {resident.nickname}
                 </div>
               </div>
@@ -284,7 +292,7 @@ const Resident = ({
                 className={`inline-flex items-center gap-1 rounded-lg border border-rose-200/60 px-2.5 py-1.5 text-xs font-medium shadow-sm transition focus:outline-none focus:ring-2 focus:ring-rose-400/30 ${
                   deleting
                     ? "bg-rose-100 text-rose-400 cursor-not-allowed"
-                    : "bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200"
+                    : "bg-rose-50 text-rose-700 hover:bg-rose-100"
                 }`}
               >
                 {deleting ? "Deleting…" : "Delete"}
@@ -297,8 +305,8 @@ const Resident = ({
       {/* Confirm Delete Modal */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="rounded-xl bg-white p-6 shadow-lg dark:bg-slate-900">
-            <p className="mb-4 text-slate-700 dark:text-slate-200">
+          <div className="rounded-xl bg-white p-6 shadow-lg">
+            <p className="mb-4 text-slate-700">
               Are you sure you want to delete this resident?
             </p>
             <div className="flex justify-end gap-3">
@@ -310,7 +318,9 @@ const Resident = ({
                 Cancel
               </button>
               <button
-                className={`rounded-lg px-3 py-1.5 text-sm text-white ${deleting ? "bg-rose-300 cursor-not-allowed" : "bg-rose-500"}`}
+                className={`rounded-lg px-3 py-1.5 text-sm text-white ${
+                  deleting ? "bg-rose-300 cursor-not-allowed" : "bg-rose-500"
+                }`}
                 onClick={handleDelete}
                 disabled={deleting}
                 aria-busy={deleting}
@@ -325,7 +335,7 @@ const Resident = ({
       {/* Success Modal (Delete) */}
       {showSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="rounded-xl bg-white p-6 shadow-lg text-center dark:bg-slate-900">
+          <div className="rounded-xl bg-white p-6 shadow-lg text-center">
             <p className="mb-4 text-emerald-600">Resident deleted successfully!</p>
             <button
               className="rounded-lg bg-teal-500 px-4 py-2 text-sm text-white"
@@ -340,7 +350,7 @@ const Resident = ({
       {/* Success Modal (Add) */}
       {showAddSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="rounded-xl bg-white p-6 shadow-lg text-center dark:bg-slate-900">
+          <div className="rounded-xl bg-white p-6 shadow-lg text-center">
             <p className="mb-4 text-emerald-600">Resident added successfully!</p>
             <button
               className="rounded-lg bg-teal-500 px-4 py-2 text-sm text-white"

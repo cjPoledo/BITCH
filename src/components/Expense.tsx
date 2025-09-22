@@ -294,63 +294,45 @@ const Expense = ({
   return (
     <section id="expense" className="p-2 scroll-mt-28">
       {/* Header */}
-      <div className="mx-auto mb-4 flex max-w-5xl items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9">
-            <svg
-              viewBox="0 0 64 64"
-              role="img"
-              aria-label="Expenses"
-              className="h-9 w-9"
-            >
-              <defs>
-                <linearGradient id="expGrad" x1="0" x2="1" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#14b8a6" />
-                  <stop offset="100%" stopColor="#6366f1" />
-                </linearGradient>
-              </defs>
-              <rect
-                x="4"
-                y="4"
-                width="56"
-                height="56"
-                rx="14"
-                fill="url(#expGrad)"
-              />
-              <path
-                d="M20 40h24M20 32h24M20 24h24"
-                stroke="#fff"
-                strokeWidth="4"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-              Expenses
-            </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Track items, contributors, and notes at a glance
-            </p>
-          </div>
+      <div className="mx-auto mb-4 flex max-w-5xl items-center justify-center gap-3">
+        <div className="h-9 w-9">
+          <svg
+            viewBox="0 0 64 64"
+            role="img"
+            aria-label="Expenses"
+            className="h-9 w-9"
+          >
+            <defs>
+              <linearGradient id="expGrad" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stopColor="#14b8a6" />
+                <stop offset="100%" stopColor="#6366f1" />
+              </linearGradient>
+            </defs>
+            <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#expGrad)" />
+            <path d="M20 40h24M20 32h24M20 24h24" stroke="#fff" strokeWidth="4" strokeLinecap="round" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-slate-800">Expenses</h3>
+          <p className="text-sm text-slate-500">Track items, contributors, and notes at a glance</p>
         </div>
       </div>
 
       {/* Add Expense Row (Card) */}
-      <div className="relative z-10 mx-auto mb-5 max-w-5xl rounded-2xl border border-slate-200/70 bg-white/80 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
-        <div className="border-b border-slate-200/60 px-4 py-3 dark:border-slate-800">
-          <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+      <div className="relative z-10 mx-auto mb-5 max-w-5xl rounded-2xl border border-slate-200/70 bg-white/80 shadow-sm backdrop-blur">
+        <div className="border-b border-slate-200/60 px-4 py-3">
+          <h4 className="text-sm font-semibold text-slate-700">
             Add a new expense
           </h4>
         </div>
         <div className="grid gap-3 px-4 py-4 md:grid-cols-12">
           <div className="md:col-span-4">
-            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
+            <label className="mb-1 block text-xs font-medium text-slate-600">
               Item
             </label>
             <input
               type="text"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/15"
               placeholder="Enter item"
               value={newExpenseItem}
               onChange={(e) => setNewExpenseItem(e.target.value)}
@@ -360,12 +342,12 @@ const Expense = ({
             />
           </div>
           <div className="md:col-span-2">
-            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
+            <label className="mb-1 block text-xs font-medium text-slate-600">
               Price
             </label>
             <input
               type="number"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15"
               placeholder="0.00"
               value={newExpensePrice}
               onChange={(e) => setNewExpensePrice(Number(e.target.value))}
@@ -376,7 +358,7 @@ const Expense = ({
             />
           </div>
           <div className="md:col-span-3">
-            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
+            <label className="mb-1 block text-xs font-medium text-slate-600">
               Care of
             </label>
             <div className="relative z-50">
@@ -387,13 +369,13 @@ const Expense = ({
                 getOptionValue={(resident) => resident.id.toString()}
                 styles={selectStyles as any}
                 classNamePrefix="rs"
-                menuPortalTarget={document.body}
+                menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
                 menuPosition="fixed"
               />
             </div>
           </div>
           <div className="md:col-span-3">
-            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
+            <label className="mb-1 block text-xs font-medium text-slate-600">
               Contributors
             </label>
             <div className="relative z-50">
@@ -405,18 +387,18 @@ const Expense = ({
                 isMulti
                 styles={selectStyles as any}
                 classNamePrefix="rs"
-                menuPortalTarget={document.body}
+                menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
                 menuPosition="fixed"
               />
             </div>
           </div>
           <div className="md:col-span-9">
-            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
+            <label className="mb-1 block text-xs font-medium text-slate-600">
               Notes
             </label>
             <input
               type="text"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-300/40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-300/40"
               placeholder="Optional notes"
               value={newExpenseNotes}
               onChange={(e) => setNewExpenseNotes(e.target.value)}
@@ -443,11 +425,11 @@ const Expense = ({
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block relative z-0 mx-auto max-w-5xl overflow-hidden rounded-2xl border border-slate-200/70 bg-white/80 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
+      <div className="hidden md:block relative z-0 mx-auto max-w-5xl overflow-hidden rounded-2xl border border-slate-200/70 bg-white/80 shadow-sm backdrop-blur">
         <div className="overflow-x-auto">
           <table className="min-w-full text-left">
             <thead>
-              <tr className="bg-slate-50 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
+              <tr className="bg-slate-50 text-slate-600">
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Date Added</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Item</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Price</th>
@@ -460,7 +442,7 @@ const Expense = ({
             <tbody>
               {expensesData.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
                     No expenses yet. Add your first one above.
                   </td>
                 </tr>
@@ -469,17 +451,17 @@ const Expense = ({
                 <tr
                   key={expense.id}
                   id={`expense-${expense.id}`}
-                  className="border-t border-slate-100/80 odd:bg-white even:bg-slate-50/60 hover:bg-teal-50/40 dark:border-slate-800 dark:odd:bg-slate-900/70 dark:even:bg-slate-900/40 dark:hover:bg-slate-800/60"
+                  className="border-t border-slate-100/80 odd:bg-white even:bg-slate-50/60 hover:bg-teal-50/40"
                 >
-                  <td className="px-4 py-3 align-top text-sm text-slate-600 dark:text-slate-300">
+                  <td className="px-4 py-3 align-top text-sm text-slate-600">
                     {new Date(expense.created_at).toLocaleString()}
                   </td>
-                  <td className="px-4 py-3 align-top font-medium text-slate-800 dark:text-slate-100">{expense.item}</td>
-                  <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">{formatPHP(expense.price)}</td>
-                  <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">
+                  <td className="px-4 py-3 align-top font-medium text-slate-800">{expense.item}</td>
+                  <td className="px-4 py-3 align-top text-slate-700">{formatPHP(expense.price)}</td>
+                  <td className="px-4 py-3 align-top text-slate-700">
                     {residentsData.find((resident) => resident.id === expense.care_of)?.nickname}
                   </td>
-                  <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">
+                  <td className="px-4 py-3 align-top text-slate-700">
                     {contributorsData
                       .filter((contributor) => contributor.expense_id === expense.id)
                       .map((contributor, index, array) => (
@@ -489,13 +471,13 @@ const Expense = ({
                         </span>
                       ))}
                   </td>
-                  <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">{expense.notes}</td>
+                  <td className="px-4 py-3 align-top text-slate-700">{expense.notes}</td>
                   <td className="px-4 py-3 align-top">
                     <button
                       type="button"
                       onClick={() => confirmDeleteExpense(expense.id)}
                       disabled={deleting}
-                      className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-300/40 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-200 dark:hover:bg-rose-900/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-300/40 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       Delete
                     </button>
@@ -510,24 +492,24 @@ const Expense = ({
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
         {expensesData.length === 0 && (
-          <div className="rounded-xl border border-slate-200 bg-white/80 p-4 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-400">
+          <div className="rounded-xl border border-slate-200 bg-white/80 p-4 text-center text-sm text-slate-500">
             No expenses yet. Add your first one above.
           </div>
         )}
         {expensesData.map((expense) => (
-          <div key={expense.id} id={`expense-${expense.id}`} className="rounded-xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
+          <div key={expense.id} id={`expense-${expense.id}`} className="rounded-xl border border-slate-200 bg-white/80 p-4 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h4 className="text-base font-semibold text-slate-800 dark:text-slate-100">{expense.item}</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(expense.created_at).toLocaleString()}</p>
+                <h4 className="text-base font-semibold text-slate-800">{expense.item}</h4>
+                <p className="text-xs text-slate-500">{new Date(expense.created_at).toLocaleString()}</p>
               </div>
               <div className="text-right">
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{formatPHP(expense.price)}</span>
+                <span className="text-sm font-medium text-slate-700">{formatPHP(expense.price)}</span>
               </div>
             </div>
             <div className="mt-2 space-y-1 text-sm">
-              <p className="text-slate-700 dark:text-slate-200"><span className="font-medium">Care of:</span> {residentsData.find((r) => r.id === expense.care_of)?.nickname}</p>
-              <p className="text-slate-700 dark:text-slate-200">
+              <p className="text-slate-700"><span className="font-medium">Care of:</span> {residentsData.find((r) => r.id === expense.care_of)?.nickname}</p>
+              <p className="text-slate-700">
                 <span className="font-medium">Contributors:</span> {
                   contributorsData
                     .filter((c) => c.expense_id === expense.id)
@@ -537,7 +519,7 @@ const Expense = ({
                 }
               </p>
               {expense.notes && (
-                <p className="text-slate-700 dark:text-slate-200"><span className="font-medium">Notes:</span> {expense.notes}</p>
+                <p className="text-slate-700"><span className="font-medium">Notes:</span> {expense.notes}</p>
               )}
             </div>
             <div className="mt-3 flex justify-end">
@@ -545,7 +527,7 @@ const Expense = ({
                 type="button"
                 onClick={() => confirmDeleteExpense(expense.id)}
                 disabled={deleting}
-                className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-300/40 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-200 dark:hover:bg-rose-900/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-300/40 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Delete
               </button>
